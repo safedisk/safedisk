@@ -1,5 +1,5 @@
-
 #pragma once
+
 #include "types.h"
 #include <boost/operators.hpp>
 
@@ -10,7 +10,7 @@ class slice_t : boost::operators<slice_t>
 	friend class rslice_t;
 public:
 	// Make a new nil slice
-	slice_t();
+	slice_t() = default;
 	// Make a slice from a copy of a simple null terminated string
 	slice_t(const char* buf);
 	// Make a slice from a copy of a buffer
@@ -28,41 +28,42 @@ public:
 	~slice_t();
 
 	// Access individual elements
-	char&    operator[](uint32_t x) const;
+	char& operator[](uint32_t x) const;
 
 	// Expand, makes a copy unless uniquely reference
-	void     add_tail(uint32_t size);
+	void add_tail(uint32_t size);
 
 	// Expand and add some data
-	void     push_back(char x);
-	void     append(const char* buf, uint32_t size);
-	void     append(const rslice_t& s);
+	void push_back(char x);
+	void append(const char* buf, uint32_t size);
+	void append(const rslice_t& s);
 	
 	// Shrink, always a reference
-	slice_t  slice(uint32_t offset, uint32_t size) const;
-	slice_t  header(uint32_t hsize) const { assert(hsize <= size()); return slice(0, hsize); }
-	slice_t  hrest(uint32_t hsize) const { assert(hsize <= size()); return slice(hsize, size() - hsize); }
+	slice_t slice(uint32_t offset, uint32_t size) const;
+	slice_t header(uint32_t hsize) const { assert(hsize <= size()); return slice(0, hsize); }
+	slice_t hrest(uint32_t hsize) const { assert(hsize <= size()); return slice(hsize, size() - hsize); }
 
 	// Get actual buffer (or null_ptr if nil)	
-	char*    buf() const;
-	byte*    ubuf() const;
+	char* buf() const;
+	byte* ubuf() const;
 	uint32_t size() const;
 
 	// Comparison operators
 	bool operator<(const rslice_t& rhs) const;	
 	bool operator==(const rslice_t& rhs) const;	
+
 private:
 	struct buffer;
-	buffer*  m_base;
-	uint32_t m_offset;
-	uint32_t m_size;
+	buffer*  m_base = nullptr;
+	uint32_t m_offset = 0;
+	uint32_t m_size = 0;
 };
 
 class rslice_t : boost::operators<rslice_t>
 {
 public:
 	// Make an empty read only slice
-	rslice_t();
+	rslice_t() = default;
 	// Make a read only view of a slice
 	rslice_t(const slice_t& rhs);
 
@@ -73,25 +74,26 @@ public:
 	~rslice_t();
 
 	// Access individual elements
-	char     operator[](uint32_t x) const;
+	char operator[](uint32_t x) const;
 
 	// Shrink, always a reference
-	rslice_t  slice(uint32_t offset, uint32_t size) const;
-	slice_t  header(uint32_t hsize) const { assert(hsize <= size()); return slice(0, hsize); }
-	slice_t  hrest(uint32_t hsize) const { assert(hsize <= size()); return slice(hsize, size() - hsize); }
+	rslice_t slice(uint32_t offset, uint32_t size) const;
+	slice_t header(uint32_t hsize) const { assert(hsize <= size()); return slice(0, hsize); }
+	slice_t hrest(uint32_t hsize) const { assert(hsize <= size()); return slice(hsize, size() - hsize); }
 
 	// Get actual buffer (or null_ptr if nil)	
-	const char*    buf() const;
-	const byte*    ubuf() const;
+	const char* buf() const;
+	const byte* ubuf() const;
 	uint32_t size() const;
 
 	// Comparison operators
 	bool operator<(const rslice_t& rhs) const;	
 	bool operator==(const rslice_t& rhs) const;	
+
 private:
-	slice_t::buffer*  m_base;
-	uint32_t m_offset;
-	uint32_t m_size;
+	slice_t::buffer* m_base = nullptr;
+	uint32_t m_offset = 0;
+	uint32_t m_size = 0;
 };
 
 // Use to make 'fixed' size subtypes via CRTP
@@ -100,9 +102,11 @@ class fslice_t : boost::operators<fslice_t<derived, csize> >
 {
 public:
 	// Make an empty (null) version
-	fslice_t() {}
+	fslice_t() = default;
+
 	// Get from a slice
-	fslice_t(const slice_t& rhs) : m_inner(rhs) {
+	fslice_t(const slice_t& rhs) : m_inner(rhs) 
+	{
 		assert(m_inner.size() == csize); 
 	}
 
@@ -112,6 +116,7 @@ public:
 	
 	// Convert back 
 	const slice_t& cast() const { return m_inner; } 
+
 private:
 	slice_t m_inner;
 };
@@ -124,13 +129,17 @@ public:
 	const static uint32_t required_size = csize;
 
 	// Make an empty (null) version
-	frslice_t() {}
+	frslice_t() = default;
+
 	// Get from a slice
-	frslice_t(const slice_t& rhs) : m_inner(rhs) {
+	frslice_t(const slice_t& rhs) : m_inner(rhs) 
+	{
 		assert(m_inner.size() == csize); 
 	}
+
 	// Get from an rslice
-	frslice_t(const rslice_t& rhs) : m_inner(rhs) {
+	frslice_t(const rslice_t& rhs) : m_inner(rhs) 
+	{
 		assert(m_inner.size() == csize);
 	}
 
@@ -140,6 +149,7 @@ public:
 	
 	// Convert back 
 	const rslice_t& cast() const { return m_inner; } 
+
 private:
 	rslice_t m_inner;
 };

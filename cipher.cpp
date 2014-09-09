@@ -1,5 +1,5 @@
-
 #include "cipher.h"
+
 #include <arpa/inet.h>
 #include <syslog.h>
 #include <assert.h>

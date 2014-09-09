@@ -1,4 +1,3 @@
-
 #include "slice.h"
 #include <assert.h>
 
@@ -9,16 +8,8 @@ struct slice_t::buffer
 	char*    buf;
 };
 
-slice_t::slice_t()
-	: m_base(nullptr)
-	, m_offset(0)
-	, m_size(0)
-{
-}
-
 slice_t::slice_t(const char* buf)
 	: m_base(new buffer)
-	, m_offset(0)
 	, m_size(strlen(buf))
 {
 	m_base->ref_count = 1;
@@ -29,7 +20,6 @@ slice_t::slice_t(const char* buf)
 
 slice_t::slice_t(const char* buf, uint32_t size)
 	: m_base(new buffer)
-	, m_offset(0)
 	, m_size(size)
 {
 	m_base->ref_count = 1;
@@ -44,7 +34,6 @@ slice_t::slice_t(const rslice_t& rhs)
 
 slice_t::slice_t(uint32_t size, uint32_t tail)
 	: m_base(new buffer)
-	, m_offset(0)
 	, m_size(size)
 {
 	m_base->ref_count = 1;
@@ -68,7 +57,7 @@ slice_t::slice_t(slice_t&& rhs)
 	, m_offset(rhs.m_offset)
 	, m_size(rhs.m_size)
 {
-	rhs.m_base = NULL;
+	rhs.m_base = nullptr;
 	rhs.m_offset = 0;
 	rhs.m_size = 0;
 }
@@ -83,7 +72,9 @@ slice_t& slice_t::operator=(slice_t rhs)
 
 slice_t::~slice_t()
 {
-	if (!m_base) return;
+	if (!m_base) {
+		return;
+	}
 	m_base->ref_count--;
 	if (m_base->ref_count == 0) {
 		delete[] m_base->buf;
@@ -99,7 +90,7 @@ char& slice_t::operator[](uint32_t x) const
 static uint32_t nearest_power_of_two(uint32_t size)
 {
 	uint32_t r = 1;
-	while(r < size) {
+	while (r < size) {
 		r <<= 1;
 	}
 	return r;
@@ -113,8 +104,9 @@ void slice_t::add_tail(uint32_t size)
 	} else {	
 		uint32_t newsize = nearest_power_of_two(size + m_size);
 		slice_t r(newsize);
-		if (m_size > 0)
+		if (m_size > 0) {
 			memcpy(r.m_base->buf, m_base->buf + m_offset, m_size);
+		}
 		r.m_offset = 0;
 		r.m_size = size + m_size;
 		swap(m_base, r.m_base);
@@ -123,19 +115,22 @@ void slice_t::add_tail(uint32_t size)
 	}
 }
 
-void slice_t::push_back(char c) {
+void slice_t::push_back(char c) 
+{
 	uint32_t off = size();
 	add_tail(1);
 	*(buf() + off) = c;
 }
 
-void slice_t::append(const char* _buf, uint32_t len) {
+void slice_t::append(const char* _buf, uint32_t len) 
+{
 	uint32_t off = size();
 	add_tail(len);
 	memcpy(buf() + off, _buf, len);
 }
 
-void slice_t::append(const rslice_t& s) {
+void slice_t::append(const rslice_t& s) 
+{
 	append(s.buf(), s.size());
 }
 
@@ -165,25 +160,28 @@ uint32_t slice_t::size() const
 	return m_size;
 }
 
-bool slice_t::operator<(const rslice_t& rhs) const {
+bool slice_t::operator<(const rslice_t& rhs) const 
+{
 	uint32_t overlap = std::min(size(), rhs.size());
 	int mcr = memcmp(buf(), rhs.buf(), overlap);
-	if (mcr < 0) return true;
-	if (mcr > 0) return false;
-	if (size() < rhs.size()) return true;
+	if (mcr < 0) {
+		return true;
+	}
+	if (mcr > 0) {
+		return false;
+	}
+	if (size() < rhs.size()) {
+		return true;
+	}
 	return false;
 }
 
-bool slice_t::operator==(const rslice_t& rhs) const {
-	if (size() != rhs.size()) return false;
-	return memcmp(buf(), rhs.buf(), size()) == 0;
-}
-
-rslice_t::rslice_t()
-	: m_base(nullptr)
-	, m_offset(0)
-	, m_size(0)
+bool slice_t::operator==(const rslice_t& rhs) const 
 {
+	if (size() != rhs.size()) {
+		return false;
+	}
+	return memcmp(buf(), rhs.buf(), size()) == 0;
 }
 
 rslice_t::rslice_t(const slice_t& rhs)
@@ -211,7 +209,7 @@ rslice_t::rslice_t(rslice_t&& rhs)
 	, m_offset(rhs.m_offset)
 	, m_size(rhs.m_size)
 {
-	rhs.m_base = NULL;
+	rhs.m_base = nullptr;
 	rhs.m_offset = 0;
 	rhs.m_size = 0;
 }
@@ -226,7 +224,9 @@ rslice_t& rslice_t::operator=(rslice_t rhs)
 
 rslice_t::~rslice_t()
 {
-	if (!m_base) return;
+	if (!m_base) {
+		return;
+	}
 	m_base->ref_count--;
 	if (m_base->ref_count == 0) {
 		delete[] m_base->buf;
@@ -265,18 +265,26 @@ uint32_t rslice_t::size() const
 	return m_size;
 }
 
-bool rslice_t::operator<(const rslice_t& rhs) const {
+bool rslice_t::operator<(const rslice_t& rhs) const 
+{
 	uint32_t overlap = std::min(size(), rhs.size());
 	int mcr = memcmp(buf(), rhs.buf(), overlap);
-	if (mcr < 0) return true;
-	if (mcr > 0) return false;
-	if (size() < rhs.size()) return true;
+	if (mcr < 0) {
+		return true;
+	}
+	if (mcr > 0) {
+		return false;
+	}
+	if (size() < rhs.size()) {
+		return true;
+	}
 	return false;
 }
 
-bool rslice_t::operator==(const rslice_t& rhs) const {
-	if (size() != rhs.size()) return false;
+bool rslice_t::operator==(const rslice_t& rhs) const 
+{
+	if (size() != rhs.size()) {
+		return false;
+	}
 	return memcmp(buf(), rhs.buf(), size()) == 0;
 }
-
-

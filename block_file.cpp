@@ -1,4 +1,3 @@
-
 #include "block_file.h"
 #include "utils.h"
 #include <syslog.h>
@@ -20,8 +19,8 @@ static const uint64_t s_ivs_per_block = 1;
 static const uint64_t s_ivs_per_region = s_blocks_per_region * s_ivs_per_block + 1;
 static const uint64_t s_ivs_per_chunk = s_regions_per_chunk * s_ivs_per_region + 1;
 
-struct coordinates {
-public:
+struct coordinates 
+{
 	coordinates(uint64_t _physical) 
 		: physical(_physical)
 		, chunk_id(physical / s_blocks_per_chunk)
@@ -32,6 +31,7 @@ public:
 		, block_offset(region_offset + block_id * s_block_total_size)
 		, iv(chunk_id * s_ivs_per_chunk + region_id * s_ivs_per_region + block_id * s_ivs_per_block)
 	{}
+
 	uint64_t physical;       // Global linear coordinates
 	uint64_t chunk_id;       // Which chunk am I in
 	uint64_t bid_chunk;      // Block ID within entire chunk
@@ -80,8 +80,10 @@ bool block_file::open(const string& _dir)
 	struct dirent *de;
 	uint64_t low_chunk = -1;
 	uint64_t high_chunk = 0;
-	while((de = readdir(dir)) != NULL) {
-		if (de->d_name[0] == '.') continue;
+	while ((de = readdir(dir)) != NULL) {
+		if (de->d_name[0] == '.') {
+			continue;
+		}
 		if (memcmp(de->d_name, "file_", 5) != 0) {
 			syslog(LOG_ERR, "Unexpected entry, forget it");
 			closedir(dir);
@@ -100,7 +102,7 @@ bool block_file::open(const string& _dir)
 	// Fix low chunk for empty directory case
 	low_chunk = std::min(low_chunk, high_chunk);
 	// Verify and open 'complete' files
-	for(uint64_t chunk = low_chunk; chunk < high_chunk; chunk++) {
+	for (uint64_t chunk = low_chunk; chunk < high_chunk; chunk++) {
 		int fd = ::open(file_name(chunk).c_str(), O_RDONLY);
 		if (fd < 0) {
 			syslog(LOG_ERR, "Unable to open file: %s, %s", file_name(chunk).c_str(), strerror(errno));
@@ -148,7 +150,7 @@ bool block_file::open(const string& _dir)
 	// This could be probably be computed some other way, but I'm drunk
 	uint64_t low_phy = high_chunk * s_blocks_per_chunk;
 	uint64_t high_phy = (high_chunk + 1) * s_blocks_per_chunk;
-	while(low_phy + 1 < high_phy) {
+	while (low_phy + 1 < high_phy) {
 		//syslog(LOG_DEBUG, "End = %llu, low_phy = %llu, high_phu = %llu", end, low_phy, high_phy);
 		uint64_t mid_phy = (low_phy + high_phy) / 2;
 		coordinates c(mid_phy);
@@ -188,7 +190,7 @@ bool block_file::scan(std::function<void (uint64_t, uint32_t)> callback)
 	coordinates c(m_next);
 	assert(m_chunks.size());
 	// Read chunk footers
-	for(auto it = m_chunks.begin(); it->first < c.chunk_id; it++) {
+	for (auto it = m_chunks.begin(); it->first < c.chunk_id; it++) {
 		int fd = it->second.fd;
 		uint64_t chunk = it->first;
 		//syslog(LOG_DEBUG, "Reading footer of chunk %llu", chunk);
@@ -208,7 +210,7 @@ bool block_file::scan(std::function<void (uint64_t, uint32_t)> callback)
 			return false;
 		}
 		uint64_t base = chunk * s_blocks_per_chunk;
-		for(uint64_t boff = 0; boff < s_blocks_per_chunk; boff++) {
+		for (uint64_t boff = 0; boff < s_blocks_per_chunk; boff++) {
 			uint32_t logical = get_logical(data.buf() + s_tag_size, boff);
 			callback(base + boff, logical);
 		} 
@@ -216,7 +218,7 @@ bool block_file::scan(std::function<void (uint64_t, uint32_t)> callback)
 	// Ok, I'm on the last chunk
 	int fd = m_chunks[c.chunk_id].fd;
 	// Read region footers
-	for(uint64_t region = 0; region < c.region_id; region++) {
+	for (uint64_t region = 0; region < c.region_id; region++) {
 		//syslog(LOG_DEBUG, "Reading footer of region %llu", region);
 		uint64_t roff = region * s_region_total_size + s_region_footer_off;
 		off_t r = lseek(fd, roff, SEEK_SET);
@@ -237,7 +239,7 @@ bool block_file::scan(std::function<void (uint64_t, uint32_t)> callback)
 			syslog(LOG_ERR, "Crypto err in region footer scan");
 			return false;
 		}
-		for(uint64_t boff = 0; boff < s_blocks_per_region; boff++) {
+		for (uint64_t boff = 0; boff < s_blocks_per_region; boff++) {
 			uint32_t logical = get_logical(data.buf() + s_tag_size, boff);
 			callback(base + boff, logical);
 			set_logical(m_chunk_footer.buf(), rbase + boff, logical);
@@ -247,7 +249,7 @@ bool block_file::scan(std::function<void (uint64_t, uint32_t)> callback)
 	uint64_t base = c.chunk_id * s_blocks_per_chunk + c.region_id * s_blocks_per_region;
 	uint64_t off_base = c.region_id * s_region_total_size; 
 	uint64_t iv_base = c.chunk_id * s_ivs_per_chunk + c.region_id * s_ivs_per_region;
-	for(uint64_t block = 0; block < c.block_id; block++) {
+	for (uint64_t block = 0; block < c.block_id; block++) {
 		uint64_t roff = off_base + block * s_block_total_size;
 		off_t r = lseek(fd, roff, SEEK_SET);
 		if (r != roff) {
@@ -274,7 +276,7 @@ bool block_file::scan(std::function<void (uint64_t, uint32_t)> callback)
 bool block_file::remove_old(uint64_t keep_after)
 {
 	coordinates c(keep_after);
-	while(m_chunks.size() && m_chunks.begin()->first < c.chunk_id) {
+	while (m_chunks.size() && m_chunks.begin()->first < c.chunk_id) {
 		//syslog(LOG_DEBUG, "Keep after: %llu, chunk_id = %llu, top = %llu, removing", keep_after, c.chunk_id, m_chunks.begin()->first);
 		auto it = m_chunks.begin();
 		::close(it->second.fd);
@@ -421,7 +423,6 @@ bool block_file::next_chunk(uint64_t chunk)
 	
 	return true;
 }
-
 
 string block_file::file_name(uint64_t chunk_id)
 {

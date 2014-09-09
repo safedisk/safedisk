@@ -1,5 +1,5 @@
-
 #include "block_map.h"
+
 #include <syslog.h>
 
 block_map::block_map(const cipher_key_t& key, uint32_t logical_size) 
@@ -115,5 +115,3 @@ uint64_t block_map::phys_expand(uint32_t small) {
 uint32_t block_map::phys_contract(uint64_t large) {
 	return large % m_physical_size;
 }
-
-

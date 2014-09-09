@@ -1,3 +1,4 @@
+#pragma once
 
 #include "types.h"
 #include "cipher.h"
@@ -20,6 +21,7 @@ public:
 	block_file(const cipher_key_t& key);
 	// Destruct
 	~block_file() { close(); }
+
 	// Open a directory, recover any existing blocks
 	bool open(const string& dir);
 	// Close nicely
@@ -34,11 +36,20 @@ public:
 	bool read_block(uint64_t physical, rslice_t& block_out, uint32_t& logical_out);
 	// Get 'top' of physical space
 	uint64_t top() { return m_next; }
+
 private:
-	struct file_info {
+	bool next_chunk(uint64_t chunk_id);
+	string file_name(uint64_t chunk_id);
+	void simple_enc(uint64_t iv, const slice_t& buf);
+	bool simple_dec(uint64_t iv, const slice_t& buf);
+
+private:
+	struct file_info 
+	{
 		int   fd;
 		off_t size;
 	};
+
 	typedef map<uint64_t, file_info> chunk_map_t;
 	cipher_ctx_t m_cipher_ctx;
 	string       m_dir;
@@ -47,10 +58,4 @@ private:
 	file_info*   m_fi;
 	slice_t      m_region_footer;
 	slice_t      m_chunk_footer;
-
-	bool next_chunk(uint64_t chunk_id);
-	string file_name(uint64_t chunk_id);
-	void simple_enc(uint64_t iv, const slice_t& buf);
-	bool simple_dec(uint64_t iv, const slice_t& buf);
 };
-

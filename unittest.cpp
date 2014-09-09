@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <syslog.h>
 
@@ -14,5 +13,5 @@ int main()
 	// File size params in block_file.h to hit the edge cases, and prevent the tests
 	// from taking forever
 	//test_block_map();
+	return 0;
 }
-
