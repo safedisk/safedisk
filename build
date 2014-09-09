@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+
+import os
+import multiprocessing
+from glob import glob
+from fabricate import *
+
+def pkg_config(flags, lib):
+	return shell('pkg-config', flags, lib).strip().split()
+
+TARGET = 'unittest'
+
+SRCS = glob('*.cpp')
+
+CFLAGS = [
+	'-std=c++11',
+	'-Wall',
+	'-Werror',
+] + pkg_config('--cflags', 'libcrypto')
+
+LDFLAGS = pkg_config('--libs', 'libcrypto')
+
+CXX = 'g++'
+
+def mkdir(path):
+	if not os.path.isdir(path):
+		os.makedirs(path)
+
+def oname(build_dir, path, ext=''):
+	filename = os.path.splitext(os.path.basename(path))[0]
+	return os.path.join(build_dir, filename) + ext
+
+def build(build_dir='out/release', flags=[]):
+	mkdir(build_dir)
+	compile(build_dir, flags)
+	link(build_dir, flags)
+
+def debug():
+	build('out/debug', ['-g'])
+
+def compile(build_dir, flags=None):
+	for src in SRCS:
+		run(CXX, '-c', src, CFLAGS, flags, '-o', oname(build_dir, src, '.o'), group='compile')
+
+def link(build_dir, flags=None):
+	objects = [oname(build_dir, src, '.o') for src in SRCS]
+	run(CXX, flags, LDFLAGS, objects, '-o', oname(build_dir, TARGET), after='compile')
+
+def clean():
+	autoclean()
+
+main(parallel_ok=True, jobs=multiprocessing.cpu_count())

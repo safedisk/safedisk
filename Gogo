@@ -1,0 +1,18 @@
+{
+	"." : {
+		"Cmd" : "./build",
+		"Args" : [],
+		"Events" : "*",
+		"Pause" : 500,
+		"Ignores" : [
+			"tmp*",
+			".deps",
+			".git",
+			"out",
+			"*.tmp",
+			"*.swp",
+			"*.swx",
+			"*.*~"
+		]
+	}
+}
