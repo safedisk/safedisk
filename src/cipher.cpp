@@ -3,33 +3,42 @@
 #include <arpa/inet.h>
 #include <syslog.h>
 #include <assert.h>
+
 #include <openssl/rand.h>
+#include <openssl/aes.h>
+
+extern "C" {
+// WTF openssl did you forget this one?
+#include <openssl/modes.h>
+}
 
 cipher_ctx_t::cipher_ctx_t()
+	: m_key(make_unique<AES_KEY>())
 {
 	slice_t key(32);
 	// Make some random bytes
 	RAND_pseudo_bytes(key.ubuf(), key.size());
 	// Construct an AES key schedule
-	AES_set_encrypt_key(key.ubuf(), 256, &m_key);	
+	AES_set_encrypt_key(key.ubuf(), 256, m_key.get());	
 	// Create a new GCM context using the AES key
-	m_context = CRYPTO_gcm128_new(&m_key, block128_f(AES_encrypt));
+	m_context = CRYPTO_gcm128_new(m_key.get(), block128_f(AES_encrypt));
 }
 
 cipher_ctx_t::cipher_ctx_t(const cipher_key_t& key)
+	: m_key(make_unique<AES_KEY>())
 {
 	assert(key.cast().size() == 32);
 	// Construct an AES key schedule
-	AES_set_encrypt_key(key.cast().ubuf(), 256, &m_key);	
+	AES_set_encrypt_key(key.cast().ubuf(), 256, m_key.get());	
 	// Create a new GCM context using the AES key
-	m_context = CRYPTO_gcm128_new(&m_key, block128_f(AES_encrypt));
+	m_context = CRYPTO_gcm128_new(m_key.get(), block128_f(AES_encrypt));
 }
 
 void cipher_ctx_t::set_key(const cipher_key_t& key)
 {
 	assert(key.cast().size() == 32);
 	// Set the AES key schedule
-	AES_set_encrypt_key(key.cast().ubuf(), 256, &m_key);	
+	AES_set_encrypt_key(key.cast().ubuf(), 256, m_key.get());	
 }
 
 cipher_ctx_t::~cipher_ctx_t()
@@ -112,7 +121,7 @@ void cipher_ctx_t::encrypt(const rslice_t& iv, const slice_t& buf) {
 	byte ivb[AES_BLOCK_SIZE];
 	memcpy(ivb, iv.buf(), AES_BLOCK_SIZE);
 	int num = 0;
-	AES_ofb128_encrypt(buf.ubuf(), buf.ubuf(), buf.size(), &m_key, ivb, &num);
+	AES_ofb128_encrypt(buf.ubuf(), buf.ubuf(), buf.size(), m_key.get(), ivb, &num);
 }
 
 void cipher_ctx_t::decrypt(const rslice_t& iv, const slice_t& buf) {

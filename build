@@ -44,7 +44,7 @@ def compile(build_dir, flags=None):
 
 def link(build_dir, flags=None):
 	objects = [oname(build_dir, src, '.o') for src in SRCS]
-	run(CXX, flags, LDFLAGS, objects, '-o', oname(build_dir, TARGET), after='compile')
+	run(CXX, flags, objects, LDFLAGS, '-o', oname(build_dir, TARGET), after='compile')
 
 def clean():
 	autoclean()

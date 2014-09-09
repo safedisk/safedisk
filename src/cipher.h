@@ -2,12 +2,11 @@
 
 #include "slice.h"
 
-#include <openssl/aes.h>
+struct aes_key_st;
+typedef struct aes_key_st AES_KEY;
 
-extern "C" {
-// WTF openssl did you forget this one?
-#include <openssl/modes.h>
-}
+struct gcm128_context;
+typedef struct gcm128_context GCM128_CONTEXT;
 
 class cipher_key_t : public frslice_t<cipher_key_t, 32> 
 {
@@ -46,6 +45,6 @@ public:
 	void decrypt(const rslice_t& iv, const slice_t& buf);
 	
 private:
-	AES_KEY m_key;
+	std::unique_ptr<AES_KEY> m_key;
 	GCM128_CONTEXT* m_context;
 };
