@@ -1,9 +1,11 @@
 #include "block_file.h"
 #include "utils.h"
+
 #include <syslog.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <arpa/inet.h>
 
 static const uint64_t s_tag_size = 16;
 static const uint64_t s_blocks_per_chunk = s_blocks_per_region * s_regions_per_chunk;
@@ -42,12 +44,14 @@ struct coordinates
 	uint64_t iv;             // Iv of this block
 };
 
-static void set_logical(char* buf, uint64_t which, uint32_t logical) 
+static 
+void set_logical(char* buf, uint64_t which, uint32_t logical) 
 {
 	*((uint32_t*) (buf + s_tag_size + which * sizeof(uint32_t))) = htonl(logical);
 }
 
-static uint32_t get_logical(char* buf, uint64_t which) 
+static 
+uint32_t get_logical(char* buf, uint64_t which) 
 {
 	return ntohl(*((uint32_t*) (buf + which * sizeof(uint32_t))));
 }
@@ -151,10 +155,10 @@ bool block_file::open(const string& _dir)
 	uint64_t low_phy = high_chunk * s_blocks_per_chunk;
 	uint64_t high_phy = (high_chunk + 1) * s_blocks_per_chunk;
 	while (low_phy + 1 < high_phy) {
-		//syslog(LOG_DEBUG, "End = %llu, low_phy = %llu, high_phu = %llu", end, low_phy, high_phy);
+		//syslog(LOG_DEBUG, "End = %ju, low_phy = %ju, high_phu = %ju", end, low_phy, high_phy);
 		uint64_t mid_phy = (low_phy + high_phy) / 2;
 		coordinates c(mid_phy);
-		if (c.block_offset > end) {
+		if (c.block_offset > (uint64_t)end) {
 			high_phy = mid_phy;
 		} else {
 			low_phy = mid_phy; 
@@ -163,7 +167,7 @@ bool block_file::open(const string& _dir)
 	// Ok, now truncate
 	m_next = low_phy;
 	coordinates c(low_phy);
-	if (end > c.block_offset) {
+	if ((uint64_t)end > c.block_offset) {
 		if (ftruncate(m_fi->fd, m_fi->size) != 0) {
 			close();
 			syslog(LOG_ERR, "Failed to truncate final file on reload");
@@ -186,14 +190,14 @@ void block_file::close()
 
 bool block_file::scan(std::function<void (uint64_t, uint32_t)> callback)
 {
-	//syslog(LOG_DEBUG, "Scanning till %llu", m_next);
+	//syslog(LOG_DEBUG, "Scanning till %ju", m_next);
 	coordinates c(m_next);
 	assert(m_chunks.size());
 	// Read chunk footers
 	for (auto it = m_chunks.begin(); it->first < c.chunk_id; it++) {
 		int fd = it->second.fd;
 		uint64_t chunk = it->first;
-		//syslog(LOG_DEBUG, "Reading footer of chunk %llu", chunk);
+		//syslog(LOG_DEBUG, "Reading footer of chunk %ju", chunk);
 		off_t r = lseek(fd, s_chunk_footer_off, SEEK_SET);
 		if (r != s_chunk_footer_off) {
 			syslog(LOG_ERR, "Couldn't seek to chunk data");
@@ -219,10 +223,10 @@ bool block_file::scan(std::function<void (uint64_t, uint32_t)> callback)
 	int fd = m_chunks[c.chunk_id].fd;
 	// Read region footers
 	for (uint64_t region = 0; region < c.region_id; region++) {
-		//syslog(LOG_DEBUG, "Reading footer of region %llu", region);
+		//syslog(LOG_DEBUG, "Reading footer of region %ju", region);
 		uint64_t roff = region * s_region_total_size + s_region_footer_off;
 		off_t r = lseek(fd, roff, SEEK_SET);
-		if (r != roff) {
+		if ((uint64_t)r != roff) {
 			syslog(LOG_ERR, "Couldn't seek to region data");
 			return false;
 		}
@@ -234,7 +238,7 @@ bool block_file::scan(std::function<void (uint64_t, uint32_t)> callback)
 		uint64_t rbase = region * s_blocks_per_region;
 		uint64_t base = c.chunk_id * s_blocks_per_chunk + rbase;
 		uint64_t iv = c.chunk_id * s_ivs_per_chunk + (region + 1) * s_ivs_per_region - 1;
-		//syslog(LOG_DEBUG, "Region footer IV = %llu", iv);
+		//syslog(LOG_DEBUG, "Region footer IV = %ju", iv);
 		if (!simple_dec(iv, data)) {
 			syslog(LOG_ERR, "Crypto err in region footer scan");
 			return false;
@@ -252,7 +256,7 @@ bool block_file::scan(std::function<void (uint64_t, uint32_t)> callback)
 	for (uint64_t block = 0; block < c.block_id; block++) {
 		uint64_t roff = off_base + block * s_block_total_size;
 		off_t r = lseek(fd, roff, SEEK_SET);
-		if (r != roff) {
+		if ((uint64_t)r != roff) {
 			syslog(LOG_ERR, "Couldn't seek to block meta-data");
 			return false;
 		}
@@ -277,7 +281,7 @@ bool block_file::remove_old(uint64_t keep_after)
 {
 	coordinates c(keep_after);
 	while (m_chunks.size() && m_chunks.begin()->first < c.chunk_id) {
-		//syslog(LOG_DEBUG, "Keep after: %llu, chunk_id = %llu, top = %llu, removing", keep_after, c.chunk_id, m_chunks.begin()->first);
+		//syslog(LOG_DEBUG, "Keep after: %ju, chunk_id = %ju, top = %ju, removing", keep_after, c.chunk_id, m_chunks.begin()->first);
 		auto it = m_chunks.begin();
 		::close(it->second.fd);
 		int r = unlink(file_name(it->first).c_str());
@@ -292,7 +296,7 @@ bool block_file::remove_old(uint64_t keep_after)
 
 bool block_file::write_block(uint32_t logical, const rslice_t& block, uint64_t& physical_out)
 {
-	//syslog(LOG_DEBUG, "Writing logical %u -> physical %llu", logical, m_next);
+	//syslog(LOG_DEBUG, "Writing logical %u -> physical %ju", logical, m_next);
 	assert(block.size() == s_bytes_per_block);
 	// Break things down into coordinates
 	coordinates c(m_next);
@@ -313,8 +317,10 @@ bool block_file::write_block(uint32_t logical, const rslice_t& block, uint64_t& 
 
 	// Seek to location for new block
 	off_t r = lseek(m_fi->fd, c.block_offset, SEEK_SET);
-	if (r != c.block_offset) {
-		syslog(LOG_ERR, "lseek returned invalid result for seek to %llu: %lld, %s", c.block_offset, r, strerror(errno));
+	if ((uint64_t)r != c.block_offset) {
+		syslog(LOG_ERR, "lseek returned invalid result for seek to %ju: %jd, %s", 
+			(uintmax_t)c.block_offset, (intmax_t)r, strerror(errno)
+		);
 		return false;
 	}
 	// Write block
@@ -326,7 +332,7 @@ bool block_file::write_block(uint32_t logical, const rslice_t& block, uint64_t& 
 	// If end of region, write region tailer
 	if (c.block_id + 1 == s_blocks_per_region) {
 		// Do encrypt
-		//syslog(LOG_DEBUG, "Writing region footer, iv = %llu", c.iv + 1);
+		//syslog(LOG_DEBUG, "Writing region footer, iv = %ju", c.iv + 1);
 		simple_enc(c.iv + 1, m_region_footer);
 		// Do write
 		if (!write_fully(m_fi->fd, m_region_footer.buf(), m_region_footer.size())) {
@@ -338,7 +344,7 @@ bool block_file::write_block(uint32_t logical, const rslice_t& block, uint64_t& 
 	// If end of chunk, write chunk tailer
 	if (c.bid_chunk + 1 == s_blocks_per_chunk) {
 		// Do encrypt
-		//syslog(LOG_DEBUG, "Writing chunk footer, iv = %llu", c.iv + 2);
+		//syslog(LOG_DEBUG, "Writing chunk footer, iv = %ju", c.iv + 2);
 		simple_enc(c.iv + 2, m_chunk_footer);
 		// Do write
 		if (!write_fully(m_fi->fd, m_chunk_footer.buf(), m_chunk_footer.size())) {
@@ -360,7 +366,7 @@ bool block_file::write_block(uint32_t logical, const rslice_t& block, uint64_t& 
 
 bool block_file::read_block(uint64_t physical, rslice_t& block_out, uint32_t& logical_out)
 {	
-	//syslog(LOG_DEBUG, "Reading physical %llu", physical);
+	//syslog(LOG_DEBUG, "Reading physical %ju", physical);
 	// Break things down into coordinates
 	coordinates c(physical);
 
@@ -374,13 +380,17 @@ bool block_file::read_block(uint64_t physical, rslice_t& block_out, uint32_t& lo
 
 	// Check that the data is there
 	if (c.block_offset + s_block_total_size > fi.size) {
-		syslog(LOG_ERR, "Attempt to read block past EOF, offset = %llu, size = %llu", c.block_offset, fi.size);
+		syslog(LOG_ERR, "Attempt to read block past EOF, offset = %ju, size = %ju", 
+			(uintmax_t)c.block_offset, (uintmax_t)fi.size
+		);
 		return false;
 	}
 	// Do seek to proper offset
 	off_t r = lseek(fi.fd, c.block_offset, SEEK_SET);
 	if (r != c.block_offset) {
-		syslog(LOG_ERR, "lseek returned invalid result for seek to %llu: %lld", c.block_offset, r);
+		syslog(LOG_ERR, "lseek returned invalid result for seek to %ju: %jd", 
+			(uintmax_t)c.block_offset, (intmax_t)r
+		);
 		return false;
 	}
 	// Do read
@@ -433,7 +443,7 @@ string block_file::file_name(uint64_t chunk_id)
 
 void block_file::simple_enc(uint64_t iv, const slice_t& buf)
 {
-	//syslog(LOG_DEBUG, "Doing simple_enc, iv = %llu", iv);
+	//syslog(LOG_DEBUG, "Doing simple_enc, iv = %ju", iv);
 	//hexdump(stderr, buf.buf(), buf.size()); 
 	// Set IV
 	m_cipher_ctx.gcm_set_iv(iv);
@@ -446,7 +456,7 @@ void block_file::simple_enc(uint64_t iv, const slice_t& buf)
 
 bool block_file::simple_dec(uint64_t iv, const slice_t& buf) 
 {
-	//syslog(LOG_DEBUG, "Doing simple_dec, iv = %llu", iv);
+	//syslog(LOG_DEBUG, "Doing simple_dec, iv = %ju", iv);
 	//hexdump(stderr, buf.buf(), buf.size()); 
 	// Set up decryption with proper IV
 	m_cipher_ctx.gcm_set_iv(iv);
