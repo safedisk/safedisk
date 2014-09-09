@@ -7,13 +7,27 @@
 		"Ignores" : [
 			"tmp*",
 			".deps",
-			".git",
-			"out/*",
 			"*.tmp",
 			"*.swp",
 			"*.swx",
 			"*.*~",
 			"*.pyc"
+		]
+	},
+	"src" : {
+		"Cmd" : "./build",
+		"Args" : [],
+		"Events" : "*",
+		"Pause" : 500,
+		"Ignores" : [
+			"tmp*",
+			".deps",
+			"*.pyc",
+			"*.tmp",
+			"src/*.tmp",
+			"*.swp",
+			"*.swx",
+			"*.*~"
 		]
 	}
 }

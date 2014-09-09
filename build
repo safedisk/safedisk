@@ -10,7 +10,7 @@ def pkg_config(flags, lib):
 
 TARGET = 'unittest'
 
-SRCS = glob('*.cpp')
+SRCS = glob('src/*.cpp')
 
 CFLAGS = [
 	'-std=c++11',
@@ -30,13 +30,13 @@ def oname(build_dir, path, ext=''):
 	filename = os.path.splitext(os.path.basename(path))[0]
 	return os.path.join(build_dir, filename) + ext
 
-def build(build_dir='out/release', flags=[]):
+def build(build_dir='out/release', flags=None):
 	mkdir(build_dir)
 	compile(build_dir, flags)
 	link(build_dir, flags)
 
 def debug():
-	build('out/debug', ['-g'])
+	build('out/debug', '-g')
 
 def compile(build_dir, flags=None):
 	for src in SRCS:
