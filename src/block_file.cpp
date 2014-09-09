@@ -379,7 +379,7 @@ bool block_file::read_block(uint64_t physical, rslice_t& block_out, uint32_t& lo
 	file_info& fi = it->second;
 
 	// Check that the data is there
-	if (c.block_offset + s_block_total_size > fi.size) {
+	if (c.block_offset + s_block_total_size > (uint64_t)fi.size) {
 		syslog(LOG_ERR, "Attempt to read block past EOF, offset = %ju, size = %ju", 
 			(uintmax_t)c.block_offset, (uintmax_t)fi.size
 		);
@@ -387,7 +387,7 @@ bool block_file::read_block(uint64_t physical, rslice_t& block_out, uint32_t& lo
 	}
 	// Do seek to proper offset
 	off_t r = lseek(fi.fd, c.block_offset, SEEK_SET);
-	if (r != c.block_offset) {
+	if ((uint64_t)r != c.block_offset) {
 		syslog(LOG_ERR, "lseek returned invalid result for seek to %ju: %jd", 
 			(uintmax_t)c.block_offset, (intmax_t)r
 		);
