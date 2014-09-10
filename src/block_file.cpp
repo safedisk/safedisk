@@ -2,6 +2,7 @@
 #include "utils.h"
 
 #include <syslog.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <sys/stat.h>

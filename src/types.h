@@ -61,5 +61,17 @@ void walk_remove(Collection& col, Functor func) {
 template<typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args)
 {
-    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+	return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
+
+// Simple replacement for boost operators for comparable values
+template<typename T>
+class comparable 
+{
+public:
+	friend bool operator<=(const T& x, const T& y) { return !(y < x); }
+	friend bool operator>=(const T& x, const T& y) { return !(x < y); }
+	friend bool operator>(const T& x, const T& y)  { return y < x; }
+	friend bool operator!=(const T& x, const T& y)  { return !(x == y); }
+};
+

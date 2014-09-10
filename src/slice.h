@@ -1,11 +1,10 @@
 #pragma once
 
 #include "types.h"
-#include <boost/operators.hpp>
 
 class rslice_t;
 
-class slice_t : boost::operators<slice_t>
+class slice_t : comparable<slice_t>
 {
 	friend class rslice_t;
 public:
@@ -59,7 +58,7 @@ private:
 	uint32_t m_size = 0;
 };
 
-class rslice_t : boost::operators<rslice_t>
+class rslice_t : comparable<rslice_t>
 {
 public:
 	// Make an empty read only slice
@@ -98,7 +97,7 @@ private:
 
 // Use to make 'fixed' size subtypes via CRTP
 template<typename derived, size_t csize> 
-class fslice_t : boost::operators<fslice_t<derived, csize> >
+class fslice_t : comparable<fslice_t<derived, csize> >
 {
 public:
 	// Make an empty (null) version
@@ -123,7 +122,7 @@ private:
 
 // Do the same for rslices
 template<typename derived, size_t csize> 
-class frslice_t : boost::operators<frslice_t<derived, csize> >
+class frslice_t : comparable<frslice_t<derived, csize> >
 {
 public:
 	const static uint32_t required_size = csize;
