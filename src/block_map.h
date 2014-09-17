@@ -12,6 +12,7 @@ public:
 	bool open(const string& dir);
 	bool write(uint32_t logical, const rslice_t& data);
 	bool read(uint32_t logical, rslice_t& data_out);
+	uint32_t block_count() { return m_logical_size; }
 	
 private:
 	uint64_t phys_expand(uint32_t small);

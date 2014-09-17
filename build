@@ -9,10 +9,19 @@ def pkg_config(flags, lib):
 	return shell('pkg-config', flags, lib).strip().split()
 
 TARGET = 'unittest'
+PLUGIN = 'safe_disk.so'
 
 SRCS = glob('src/*.cpp')
+NBDKIT_SRCS = glob('src/nbdkit/*.c')
 
 CFLAGS = [
+	'-fPIC',
+	'-Wall',
+	'-Werror',
+] + pkg_config('--cflags', 'libcrypto')
+
+CPPFLAGS = [
+	'-fPIC',
 	'-std=c++11',
 	'-Wall',
 	'-Werror',
@@ -20,6 +29,7 @@ CFLAGS = [
 
 LDFLAGS = pkg_config('--libs', 'libcrypto')
 
+CC = 'gcc'
 CXX = 'g++'
 
 def mkdir(path):
@@ -40,11 +50,15 @@ def debug():
 
 def compile(build_dir, flags=None):
 	for src in SRCS:
-		run(CXX, '-c', src, CFLAGS, flags, '-o', oname(build_dir, src, '.o'), group='compile')
+		run(CXX, '-c', src, CPPFLAGS, flags, '-o', oname(build_dir, src, '.o'), group='compile')
+	for src in NBDKIT_SRCS:
+		run(CC, '-c', src, CFLAGS + ['-I..'], flags, '-o', oname(build_dir, src, '.o'), group='compile')
 
 def link(build_dir, flags=None):
 	objects = [oname(build_dir, src, '.o') for src in SRCS]
 	run(CXX, flags, objects, LDFLAGS, '-o', oname(build_dir, TARGET), after='compile')
+	nbdkit_objects = [oname(build_dir, src, '.o') for src in NBDKIT_SRCS]
+	run(CXX, flags, objects + nbdkit_objects, LDFLAGS, '-shared', '-o', oname(build_dir, PLUGIN, '.so'), after='compile')
 
 def clean():
 	autoclean()
