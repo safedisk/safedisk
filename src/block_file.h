@@ -4,8 +4,8 @@
 #include "cipher.h"
 
 static const uint64_t s_bytes_per_block = 1024;   // Block size in bytes
-static const uint64_t s_blocks_per_region = 4096;  // Region size in blocks
-static const uint64_t s_regions_per_chunk = 1024;    // Chunk size in regions 
+static const uint64_t s_blocks_per_region = 1024;  // Region size in blocks
+static const uint64_t s_regions_per_chunk = 256;    // Chunk size in regions 
 
 //For tests
 /*

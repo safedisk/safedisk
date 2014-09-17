@@ -89,6 +89,9 @@ bool block_file::open(const string& _dir)
 		if (de->d_name[0] == '.') {
 			continue;
 		}
+		if (strcmp(de->d_name, "size") == 0) {
+			continue;
+		}
 		if (memcmp(de->d_name, "file_", 5) != 0) {
 			syslog(LOG_ERR, "Unexpected entry, forget it");
 			closedir(dir);
