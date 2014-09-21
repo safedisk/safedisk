@@ -8,26 +8,17 @@ from fabricate import *
 def pkg_config(flags, lib):
 	return shell('pkg-config', flags, lib).strip().split()
 
-TARGET = 'unittest'
-PLUGIN = 'safe_disk.so'
-
-SRCS = glob('src/*.cpp')
-NBDKIT_SRCS = glob('src/nbdkit/*.c')
-
-CFLAGS = [
+BASE_FLAGS = [
 	'-fPIC',
 	'-Wall',
 	'-Werror',
-] + pkg_config('--cflags', 'libcrypto')
+]
 
-CPPFLAGS = [
-	'-fPIC',
-	'-std=c++11',
-	'-Wall',
-	'-Werror',
-] + pkg_config('--cflags', 'libcrypto')
-
-LDFLAGS = pkg_config('--libs', 'libcrypto')
+LIB_FLAGS = BASE_FLAGS + pkg_config('--cflags', 'libcrypto') + ['-std=c++11']
+TEST_FLAGS = LIB_FLAGS + ['-I', 'src/lib/'] 
+NBD_FLAGS = BASE_FLAGS
+FUSE_FLAGS = BASE_FLAGS + pkg_config('--cflags', 'fuse') + ['-DFUSE_USE_VERSION=26']
+LD_FLAGS = pkg_config('--libs', 'libcrypto')
 
 CC = 'gcc'
 CXX = 'g++'
@@ -40,25 +31,48 @@ def oname(build_dir, path, ext=''):
 	filename = os.path.splitext(os.path.basename(path))[0]
 	return os.path.join(build_dir, filename) + ext
 
-def build(build_dir='out/release', flags=None):
+def build_c(build_dir, src_dir, flags):
+	srcs = glob(src_dir + '/*.c')
+	objs = []
+	for src in srcs:
+		obj = oname(build_dir, src, '.o')
+		run(CC, '-c', src, flags, '-o', obj, group='compile')
+		objs += [obj]
+	return objs
+
+def build_cpp(build_dir, src_dir, flags):
+	srcs = glob(src_dir + '/*.cpp')
+	objs = []
+	for src in srcs:
+		obj = oname(build_dir, src, '.o')
+		run(CXX, '-c', src, flags, '-o', obj, group='compile')
+		objs += [obj]
+	return objs
+
+def link_exe(build_dir, name, objs, extra_flags = []):
+	exe_name = oname(build_dir, name)
+	run(CXX, objs, LD_FLAGS + extra_flags, '-o', exe_name, after='compile')
+
+def link_so(build_dir, name, objs):
+	so_name = oname(build_dir, name, '.so')
+	run(CXX, objs, LD_FLAGS + extra_flags, '-shared', '-o', so_name, after='compile')
+
+def build_all(build_dir, extra_flags):
 	mkdir(build_dir)
-	compile(build_dir, flags)
-	link(build_dir, flags)
+	lib_objs = build_cpp(build_dir, 'src/lib', LIB_FLAGS + extra_flags)
+	test_objs = build_cpp(build_dir, 'src/test', TEST_FLAGS + extra_flags)
+	fuse_objs = build_c(build_dir, 'src/fuse', FUSE_FLAGS + extra_flags)
+	#nbd_objs = build_c(build_dir, 'src/nbdkit', NDB_FLAGS + extra_flags)
+	link_exe(build_dir, 'unittest', lib_objs + test_objs)
+	link_exe(build_dir, 'safedisk', lib_objs + fuse_objs, 
+		pkg_config('--libs', 'fuse') + ['-Wno-error=unused-command-line-argument'])
+	#link_so(build_dir, 'safedisk', lib_objs + nbd_objs)
+
+def build():
+	build_all('out/release', ['-O3'])
 
 def debug():
-	build('out/debug', '-g')
-
-def compile(build_dir, flags=None):
-	for src in SRCS:
-		run(CXX, '-c', src, CPPFLAGS, flags, '-o', oname(build_dir, src, '.o'), group='compile')
-	for src in NBDKIT_SRCS:
-		run(CC, '-c', src, CFLAGS + ['-I..'], flags, '-o', oname(build_dir, src, '.o'), group='compile')
-
-def link(build_dir, flags=None):
-	objects = [oname(build_dir, src, '.o') for src in SRCS]
-	run(CXX, flags, objects, LDFLAGS, '-o', oname(build_dir, TARGET), after='compile')
-	nbdkit_objects = [oname(build_dir, src, '.o') for src in NBDKIT_SRCS]
-	run(CXX, flags, objects + nbdkit_objects, LDFLAGS, '-shared', '-o', oname(build_dir, PLUGIN, '.so'), after='compile')
+	build_all('out/debug', ['-g'])
 
 def clean():
 	autoclean()
