@@ -1,0 +1,38 @@
+#!/bin/bash
+
+function error_exit
+{
+	echo "$1" 1>&2
+	exit 1
+}
+
+[[ $# -eq 2 ]] || error_exit "usage: make_safedisk <storage_path> <size in megs>"
+
+storage_path=$1
+size_in_megs=$2
+
+[[ $size_in_megs -gt 0 && $size_in_megs -le 1000000 ]] || error_exit "Size in megs is not in range"
+[[ -e $storage_path ]] && error_exit "Storage path already exists"
+mkdir -p $storage_path || error_exit "Unable to create base directory"
+mkdir -p $storage_path/data || error_exit "Unable to create data directory"
+mkdir -p $storage_path/fuse_mnt || error_exit "Unable to create fuse mount point"
+echo $size_in_megs > $storage_path/size || error_exit "Unable to create size file"
+
+./out/release/safedisk $storage_path/fuse_mnt $storage_path/data $size_in_megs || error_exit "Unable to mnt fuse"
+hdout=`hdiutil attach -imagekey diskimage-class=CRawDiskImage -nomount $storage_path/fuse_mnt/data | awk '{print $1}'`
+if [[ $? -ne 0 ]]; then 
+	umount $storage_path/fuse_mnt
+	error_exit "Unable to attach data via hdiutils: $hdout"
+fi
+
+newfs_exfat $hdout
+if [[ $? -ne 0 ]]; then
+	hdiutil detach $hdout
+	umount $storage_path/fuse_mnt
+	error_exit "Unable to make filesystem"
+fi
+
+hdiutil detach $hdout
+umount $storage_path/fuse_mnt
+
+
