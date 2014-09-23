@@ -1,44 +1,39 @@
-safedisk
+SafeDisk
 ========
 
 Building on OS X
 --------
-1) Install osxfuse recent version
-2) `brew install openssl`
-3) `. ./os
-4) `./build`
+1. `brew install openssl osxfuse`
+1. `. ./osx.env`
+1. `./build`
 
-Note: brew has osxfuse, should I use that?  What about packaging?  I need to make a pkg with all the deps.
-
-
-Making a new disk 100 MB disk with backing storage in ~/Documents/safedisk_store
+Make a 100 MB disk with backing storage in ~/Documents/SafeDisk.disk
 -----------------
-`./scripts/macosx/make_safedisk ~/Documents/safedisk_store 100`
+`./scripts/macosx/make_safedisk ~/Documents/SafeDisk.disk 100`
 
-Safedisk will prompt you for a password, this will be your new disk's password
+SafeDisk will prompt you for a password, this will be your new disk's password.
 
-Mounting the above disk
-----------------
-`./scripts/macosx/mount_safedisk ~/Documents/safedisk_100`
+Mount a SafeDisk
+------------
+`./scripts/macosx/mount_safedisk ~/Documents/SafeDisk.disk`
 
-Safedisk will again prompt you for a password.  Presuming it's correct, the system will mount the drive
+SafeDisk will again prompt you for a password.  
+Presuming it's correct, the system will mount the drive
 and it will appear as a mounted volume (initally called Untitled).
 
-Unmounting the above disk
+Unmount a SafeDisk
 ------------------
 Hit the eject icon for the disk
 
-Copying data elsewhere (backup)
+Make a backup
 ------------------
-`~/Documents/safedisk_store/data` contains all of the actual data, rsync at will.
+`~/Documents/SafeDisk.disk/data` contains all of the actual data, rsync at will.
 
 TODO
 -------
-Put TODO list into github
-Improper error handling on bad password (just fails to mount, no good error)
-After ejecting disk, you need to do 
-`umount ~/Documents/safedisk_store/fuse_mnt`
-Remove mkdir code from c++ code
-Fix linux version (which was working)
-
-
+- [ ] Convert this list into GitHub issues
+- [ ] Improper error handling on bad password (just fails to mount, no good error)
+- [ ] After ejecting disk, you need to do 
+- [ ] `umount ~/Documents/safedisk_store/fuse_mnt`
+- [ ] Remove mkdir code from c++ code
+- [ ] Fix linux version (which was working)
