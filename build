@@ -16,7 +16,6 @@ BASE_FLAGS = [
 
 LIB_FLAGS = BASE_FLAGS + pkg_config('--cflags', 'libcrypto') + ['-std=c++11']
 TEST_FLAGS = LIB_FLAGS + ['-I', 'src/lib/'] 
-NBD_FLAGS = BASE_FLAGS
 FUSE_FLAGS = BASE_FLAGS + pkg_config('--cflags', 'fuse') + ['-DFUSE_USE_VERSION=26']
 LD_FLAGS = pkg_config('--libs', 'libcrypto')
 
@@ -31,23 +30,20 @@ def oname(build_dir, path, ext=''):
 	filename = os.path.splitext(os.path.basename(path))[0]
 	return os.path.join(build_dir, filename) + ext
 
-def build_c(build_dir, src_dir, flags):
-	srcs = glob(src_dir + '/*.c')
+def compile(build_dir, src_dir, flags, tool, ext):
+	srcs = glob(os.path.join(src_dir, ext))
 	objs = []
 	for src in srcs:
 		obj = oname(build_dir, src, '.o')
-		run(CC, '-c', src, flags, '-o', obj, group='compile')
+		run(tool, '-c', src, flags, '-o', obj, group='compile')
 		objs += [obj]
 	return objs
 
-def build_cpp(build_dir, src_dir, flags):
-	srcs = glob(src_dir + '/*.cpp')
-	objs = []
-	for src in srcs:
-		obj = oname(build_dir, src, '.o')
-		run(CXX, '-c', src, flags, '-o', obj, group='compile')
-		objs += [obj]
-	return objs
+def compile_cxx(build_dir, src_dir, flags):
+	return compile(build_dir, src_dir, flags, CXX, '*.cpp')
+
+def compile_c(build_dir, src_dir, flags):
+	return compile(build_dir, src_dir, flags, CC, '*.c')
 
 def link_exe(build_dir, name, objs, extra_flags = []):
 	exe_name = oname(build_dir, name)
@@ -59,14 +55,15 @@ def link_so(build_dir, name, objs):
 
 def build_all(build_dir, extra_flags):
 	mkdir(build_dir)
-	lib_objs = build_cpp(build_dir, 'src/lib', LIB_FLAGS + extra_flags)
-	test_objs = build_cpp(build_dir, 'src/test', TEST_FLAGS + extra_flags)
-	fuse_objs = build_c(build_dir, 'src/fuse', FUSE_FLAGS + extra_flags)
-	#nbd_objs = build_c(build_dir, 'src/nbdkit', NDB_FLAGS + extra_flags)
+	lib_objs = compile_cxx(build_dir, 'src/lib', LIB_FLAGS + extra_flags)
+	test_objs = compile_cxx(build_dir, 'src/test', TEST_FLAGS + extra_flags)
+	fuse_objs = compile_c(build_dir, 'src/fuse', FUSE_FLAGS + extra_flags)
 	link_exe(build_dir, 'unittest', lib_objs + test_objs)
 	link_exe(build_dir, 'safedisk', lib_objs + fuse_objs, 
-		pkg_config('--libs', 'fuse') + ['-Wno-error=unused-command-line-argument'])
-	#link_so(build_dir, 'safedisk', lib_objs + nbd_objs)
+		pkg_config('--libs', 'fuse') + [
+			'-Wno-error=unused-command-line-argument'
+		]
+	)
 
 def build():
 	build_all('out/release', ['-O3'])
