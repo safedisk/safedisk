@@ -19,4 +19,3 @@ size_in_megs=`cat $storage_path/size`
 # The error is easy, not sure how to wait for user eject.
 
 hdiutil attach -imagekey diskimage-class=CRawDiskImage $storage_path/fuse_mnt/data
-

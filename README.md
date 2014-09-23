@@ -7,7 +7,7 @@ Building on OS X
 1. `. ./osx.env`
 1. `./build`
 
-Make a 100 MB disk with backing storage in ~/Documents/SafeDisk.disk
+Make a 100 MB SafeDisk
 -----------------
 `./scripts/macosx/make_safedisk ~/Documents/SafeDisk.disk 100`
 
