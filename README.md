@@ -19,7 +19,7 @@ Mount a SafeDisk
 
 SafeDisk will again prompt you for a password.  
 Presuming it's correct, the system will mount the drive
-and it will appear as a mounted volume (initally called Untitled).
+and it will appear as a mounted volume (initially called Untitled).
 
 Unmount a SafeDisk
 ------------------
