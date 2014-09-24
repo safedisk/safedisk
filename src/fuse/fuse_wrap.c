@@ -191,7 +191,8 @@ int safedisk_write(
 	return size*block_size;
 }
 
-static struct fuse_operations safedisk_filesystem_operations = {
+static 
+struct fuse_operations safedisk_filesystem_operations = {
 	.getattr = safedisk_getattr, // To provide size, permissions, etc.
 	.open    = safedisk_open,    // Allow opening of a single file
 	.read    = safedisk_read,    // Allow block reads
@@ -215,8 +216,8 @@ int main(int argc, char** argv)
 	}
 	// Check for existance of data directory and get uid
 	const char* block_dir = argv[argc-2];
-	struct stat st_buf;
-	if (stat(block_dir, &st_buf) != 0) {
+	struct stat st;
+	if (stat(block_dir, &st) != 0) {
 		fprintf(stderr, "Unable to stat data directory: %s\n", strerror(errno));
 		exit(1);
 	}
@@ -230,7 +231,7 @@ int main(int argc, char** argv)
 	}
 	// Set global variables
 	file_size = size_block_map(bm);
-	uid = st_buf.st_uid;
+	uid = st.st_uid;
 #ifdef __APPLE__
 	memset(&create_time, 0, sizeof(struct timespec));
 	memset(&modify_time, 0, sizeof(struct timespec));

@@ -9,11 +9,11 @@ function error_exit
 [[ $# -eq 1 ]] || error_exit "usage: make_safedisk <storage_path>"
 
 storage_path=$1
-size_in_megs=`cat $storage_path/size`
+size_MB=`cat $storage_path/size`
 
-[[ $size_in_megs -gt 0 && $size_in_megs -le 1000000 ]] || error_exit "Size in megs is not in range"
+[[ $size_MB -gt 0 && $size_MB -le 1000000 ]] || error_exit "Size in MB is not in range"
 
-./out/release/safedisk $storage_path/fuse_mnt $storage_path/data $size_in_megs || error_exit "Unable to mnt fuse"
+out/release/safedisk $storage_path/fuse_mnt $storage_path/data $size_MB || error_exit "Unable to mnt fuse"
 
 #TODO: If the following errors *or* whenever user ejects drive, we need to unmount $storage_path/fuse_mnt
 # The error is easy, not sure how to wait for user eject.

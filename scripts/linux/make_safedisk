@@ -15,21 +15,10 @@ size_MB=$2
 [[ -e $storage_path ]] && error_exit "Storage path already exists"
 mkdir -p $storage_path/data || error_exit "Unable to create data directory"
 mkdir -p $storage_path/fuse_mnt || error_exit "Unable to create fuse mount point"
+mkdir -p $storage_path/mnt || error_exit "Unable to create final mount point"
 echo $size_MB > $storage_path/size || error_exit "Unable to create size file"
 
-out/release/safedisk $storage_path/fuse_mnt $storage_path/data $size_MB || error_exit "Unable to mnt fuse"
-hdout=`hdiutil attach -imagekey diskimage-class=CRawDiskImage -nomount $storage_path/fuse_mnt/data | awk '{print $1}'`
-if [[ $? -ne 0 ]]; then 
-	umount $storage_path/fuse_mnt
-	error_exit "Unable to attach data via hdiutils: $hdout"
-fi
-
-newfs_exfat $hdout
-if [[ $? -ne 0 ]]; then
-	hdiutil detach $hdout
-	umount $storage_path/fuse_mnt
-	error_exit "Unable to make filesystem"
-fi
-
-hdiutil detach $hdout
-umount $storage_path/fuse_mnt
+out/release/safedisk -o allow_root $storage_path/fuse_mnt $storage_path/data $size_MB || error_exit "Unable to mnt fuse"
+sudo losetup /dev/loop0 $storage/fuse_mnt/data
+sudo mkfs /dev/loop0
+sudo losetup -d /dev/loop0

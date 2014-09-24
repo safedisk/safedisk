@@ -1,0 +1,17 @@
+#!/bin/bash
+
+function error_exit
+{
+	echo "$1" 1>&2
+	exit 1
+}
+
+[[ $# -eq 1 ]] || error_exit "usage: make_safedisk <storage_path>"
+
+storage_path=$1
+size_in_megs=`cat $storage_path/size`
+
+[[ $size_in_megs -gt 0 && $size_in_megs -le 1000000 ]] || error_exit "Size in MB is not in range"
+
+out/release/safedisk -o allow_root $storage_path/fuse_mnt $storage_path/data $size_MB || error_exit "Unable to mnt fuse"
+sudo mount -o loop $storage_path/fuse_mnt $storage_path/mnt
