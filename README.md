@@ -28,12 +28,3 @@ Hit the eject icon for the disk
 Make a backup
 ------------------
 `~/Documents/SafeDisk.disk/data` contains all of the actual data, rsync at will.
-
-TODO
--------
-- [ ] Convert this list into GitHub issues
-- [ ] Improper error handling on bad password (just fails to mount, no good error)
-- [ ] After ejecting disk, you need to do 
-- [ ] `umount ~/Documents/safedisk_store/fuse_mnt`
-- [ ] Remove mkdir code from c++ code
-- [ ] Fix linux version (which was working)
