@@ -1,8 +1,5 @@
 language: cpp
 
-compiler:
-  - gcc
-
 before_install:
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo apt-get update -qq
@@ -12,3 +9,8 @@ install:
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 90
 
 script: ./build
+
+notifications:
+  email:
+    - frank.laub@gmail.com
+    - jeremy.bruestle@gmail.com
