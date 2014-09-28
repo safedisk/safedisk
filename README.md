@@ -30,3 +30,4 @@ Hit the eject icon for the disk.  Note, due to a bug in the unmount process, thi
 Make a backup
 ------------------
 `~/Documents/SafeDisk.disk/data` contains all of the actual data, rsync at will.
+
