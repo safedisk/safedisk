@@ -19,6 +19,7 @@ build_osx() {
 
 build_() {
 	echo Missing environment variable: TRAVIS_OS_NAME
+	exit 1
 }
 
 build_${TRAVIS_OS_NAME}
