@@ -23,11 +23,14 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <signal.h>
 
 const static uint64_t block_size = 1024;
 static void* bm = NULL;
 static uint64_t file_size = 0;
 static uid_t uid = 0;
+static int shutdown = 0;
+static int open_count = 0;
 
 #ifdef __APPLE__
 static struct timespec create_time;
@@ -50,6 +53,22 @@ int safedisk_getattr(const char* path, struct stat* st)
 {
 	memset(st, 0, sizeof(*st));
 
+	if (strcmp(path, "/") != 0 && strcmp(path, "/data") != 0) {
+		return -ENOENT;
+	}
+	// Common bits
+	st->st_uid = uid;
+#ifdef __APPLE__
+	st->st_atimespec = access_time;
+	st->st_mtimespec = modify_time;
+	st->st_ctimespec = create_time;
+	st->st_birthtimespec = create_time;
+#else
+	st->st_atime = access_time;
+	st->st_mtime = modify_time;
+	st->st_ctime = create_time;
+#endif
+	st->st_blksize = block_size;
 	if (strcmp(path, "/") == 0) { 
 		// The root directory of our file system
 		st->st_mode = S_IFDIR | 0755;
@@ -60,27 +79,23 @@ int safedisk_getattr(const char* path, struct stat* st)
 		st->st_mode = S_IFREG | 0644;
 		st->st_nlink = 1;
 		st->st_size = file_size;
-		st->st_uid = uid;
-#ifdef __APPLE__
-		st->st_atimespec = access_time;
-		st->st_mtimespec = modify_time;
-		st->st_ctimespec = create_time;
-		st->st_birthtimespec = create_time;
-#else
-		st->st_atime = access_time;
-		st->st_mtime = modify_time;
-		st->st_ctime = create_time;
-#endif
 		st->st_blocks = file_size / 512;
-		st->st_blksize = block_size;
 	} 
-	else { 
-		// Reject everything else
-		return -ENOENT;
-	}
 
 	return 0;
 }
+
+int safedisk_create(const char *path, mode_t mode, struct fuse_file_info *fi)
+{
+	if (strcmp(path, "/shutdown") == 0) {
+		shutdown = 1;
+		if (open_count == 0) {
+			raise(SIGHUP);
+		}
+	}
+	return -EPERM;
+}
+
 
 static 
 int safedisk_open(const char* path, struct fuse_file_info* fi)
@@ -89,7 +104,35 @@ int safedisk_open(const char* path, struct fuse_file_info* fi)
 		// We only recognize one file
 		return -ENOENT;
 	}
+	open_count++;	
 
+	return 0;
+}
+
+static 
+int safedisk_opendir(const char* path, struct fuse_file_info* fi)
+{
+	open_count++;	
+	return 0;
+}
+
+static 
+int safedisk_release(const char* path, struct fuse_file_info* fi)
+{
+	open_count--;
+	if (open_count == 0 && shutdown) {
+		raise(SIGHUP);
+	}
+	return 0;
+}
+
+static 
+int safedisk_releasedir(const char* path, struct fuse_file_info* fi)
+{
+	open_count--;
+	if (open_count == 0 && shutdown) {
+		raise(SIGHUP);
+	}
 	return 0;
 }
 
@@ -210,11 +253,15 @@ int safedisk_write(
 
 static 
 struct fuse_operations safedisk_filesystem_operations = {
-	.getattr = safedisk_getattr, // To provide size, permissions, etc.
-	.open    = safedisk_open,    // Allow opening of a single file
-	.read    = safedisk_read,    // Allow block reads
-	.write   = safedisk_write,   // Allow block writes
-	.readdir = safedisk_readdir, // Directory listing of our one directory
+	.getattr    = safedisk_getattr,    // To provide size, permissions, etc.
+	.create     = safedisk_create,     // Allow creation attempts to hit shutdown switch 
+	.open       = safedisk_open,       // Allow opening of a single file
+	.opendir    = safedisk_opendir,    // Track number of open dirs
+	.release    = safedisk_release,    // After close, shutdown
+	.releasedir = safedisk_releasedir, // Track number of open dirs
+	.read       = safedisk_read,       // Allow block reads
+	.write      = safedisk_write,      // Allow block writes
+	.readdir    = safedisk_readdir,    // Directory listing of our one directory
 };
 
 // TODO: Less lame option parsing 
