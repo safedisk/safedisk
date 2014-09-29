@@ -23,9 +23,7 @@ and it will appear as a mounted volume (initially called Untitled).
 
 Unmount a SafeDisk
 ------------------
-Hit the eject icon for the disk.  Note, due to a bug in the unmount process, this will leave things in a borked state so remounting may be problematic.  After doing eject, run:
-
-`umount ~/Documents/SafeDisk.disk/fuse_mnt/`
+Hit the eject icon for the disk.  
 
 Make a backup
 ------------------
