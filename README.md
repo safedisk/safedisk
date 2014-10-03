@@ -3,7 +3,7 @@ SafeDisk
 
 Building on OS X
 --------
-1. `brew install openssl osxfuse`
+1. `brew install openssl osxfuse qt5`
 1. `. ./osx.env`
 1. `./build`
 
@@ -28,4 +28,3 @@ Hit the eject icon for the disk.
 Make a backup
 ------------------
 `~/Documents/SafeDisk.disk/data` contains all of the actual data, rsync at will.
-
