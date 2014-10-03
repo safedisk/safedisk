@@ -3,3 +3,4 @@
 *.pyc
 /qt/*.pro.user
 /qt/Makefile
+/.qmake.stash
