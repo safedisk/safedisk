@@ -6,6 +6,8 @@
 #include <QAction>
 #include <QMenu>
 
+#include <memory>
+
 class MainWindow : public QDialog
 {
 	Q_OBJECT
