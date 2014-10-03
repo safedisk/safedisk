@@ -32,7 +32,11 @@ size_MB=`cat $storage_path/size`
 
 out/release/safedisk $storage_path/fuse_mnt $storage_path/data $size_MB || error_exit "Unable to mnt fuse"
 
-#TODO: If the following errors *or* whenever user ejects drive, we need to unmount $storage_path/fuse_mnt
-# The error is easy, not sure how to wait for user eject.
-
+# Kick of hdiutil
 hdiutil attach -imagekey diskimage-class=CRawDiskImage $storage_path/fuse_mnt/data
+hdiret=$#
+# Either way, set off shutdown switch
+touch $storage_path/fuse_mnt/shutdown
+
+[[ $hdiret -eq 1 ]] || error_exit "Unable to do hdiutil mount"
+
