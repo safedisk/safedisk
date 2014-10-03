@@ -8,10 +8,10 @@ MainWindow::MainWindow()
 	m_minimizeAction = make_unique<QAction>("Mi&nimize", this);
 	connect(m_minimizeAction.get(), SIGNAL(triggered()), this, SLOT(hide()));
 
-	m_maximizeAction = make_unique<QAction>(QObject::tr("Ma&ximize"), this);
+	m_maximizeAction = make_unique<QAction>("Ma&ximize", this);
 	connect(m_maximizeAction.get(), SIGNAL(triggered()), this, SLOT(showMaximized()));
 
-	m_restoreAction = make_unique<QAction>(QObject::tr("&Restore"), this);
+	m_restoreAction = make_unique<QAction>("&Restore", this);
 	connect(m_restoreAction.get(), SIGNAL(triggered()), this, SLOT(showNormal()));
 
 	m_quitAction = make_unique<QAction>("&Quit", this);
