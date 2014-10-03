@@ -96,7 +96,7 @@ def build():
 
 def debug():
 	build_daemon('debug', ['-g'])
-	build_qt('debug', ['CONFIG+=debug', 'CONFIG+=declarative_debug', 'CONFIG+=qml_debug'])
+	build_qt('debug', ['CONFIG+=debug'])
 
 def clean():
 	autoclean()

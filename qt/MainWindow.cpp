@@ -17,7 +17,7 @@ MainWindow::MainWindow()
 	m_quitAction = make_unique<QAction>("&Quit", this);
 	connect(m_quitAction.get(), SIGNAL(triggered()), QApplication::instance(), SLOT(quit()));
 
-	m_trayIconMenu = make_unique<QMenu>();
+	m_trayIconMenu = make_unique<QMenu>(this);
 	m_trayIconMenu->addAction(m_minimizeAction.get());
 	m_trayIconMenu->addAction(m_maximizeAction.get());
 	m_trayIconMenu->addAction(m_restoreAction.get());
