@@ -84,10 +84,9 @@ def build_daemon(variant, flags):
 	)
 
 def build_qt(variant, flags):
-	build_dir = os.path.join('out', variant, 'qt')
+	build_dir = os.path.join(os.getcwd(), 'out', variant, 'qt')
 	Makefile = os.path.join(build_dir, 'Makefile')
 
-	mkdir(build_dir)
 	run('qmake', 'qt/QtSafeDisk.pro', 'CONFIG+=x86_64', flags, '-o', Makefile)
 	run('make', '-C', build_dir)
 
