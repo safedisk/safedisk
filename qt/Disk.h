@@ -1,4 +1,4 @@
-/*  osx-nbd
+/*  SafeDisk
  *  Copyright (C) 2014 Frank Laub
  *
  *  This program is free software: you can redistribute it and/or modify
