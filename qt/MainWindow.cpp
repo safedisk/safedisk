@@ -1,10 +1,8 @@
 #include "MainWindow.h"
 #include "CreateDiskDialog.h"
 
-#include <QDir>
 #include <QMessageBox>
 #include <QApplication>
-#include <QStandardPaths>
 
 MainWindow::MainWindow()
 {
@@ -29,12 +27,7 @@ MainWindow::MainWindow()
 	m_trayIcon->setIcon(QIcon(":/images/glyphicons_240_rotation_lock.png"));
 	m_trayIcon->show();
 
-	QStringList paths = QStandardPaths::standardLocations(QStandardPaths::DataLocation);
-	QDir::root().mkpath(paths[0]);
-	QDir dataPath(paths[0]);
-	QStringList disks = dataPath.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
-	for (auto it = disks.cbegin(); it != disks.cend(); it++) {
-		Disk* disk = new Disk(*it, this);
+	for (auto disk : Disk::listDisks(this)) {
 		m_trayIconMenu->insertMenu(m_disksSeparator, disk->menu());
 	}
 }

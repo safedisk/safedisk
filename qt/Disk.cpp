@@ -19,6 +19,24 @@ Disk::Disk(const QString& name, QWidget* parent)
 	createMenu();
 }
 
+QList<Disk*> Disk::listDisks(QWidget* parent)
+{
+	QList<Disk*> diskList;
+	QStringList paths = QStandardPaths::standardLocations(QStandardPaths::DataLocation);
+	QDir::root().mkpath(paths[0]);
+	QDir dataPath(paths[0]);
+	QStringList disks = dataPath.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+	for (auto it = disks.cbegin(); it != disks.cend(); it++) {
+		diskList.append(new Disk(*it, parent));
+	}
+	return diskList;
+}
+
+bool Disk::exists(const QString& name)
+{
+	return !QStandardPaths::locate(QStandardPaths::DataLocation, name, QStandardPaths::LocateDirectory).isEmpty();
+}
+
 QMenu* Disk::menu() const
 {
 	return m_menu;

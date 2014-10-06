@@ -11,6 +11,12 @@ public:
 
 	QMenu* menu() const;
 
+	static
+	QList<Disk*> listDisks(QWidget* parent);
+
+	static
+	bool exists(const QString& name);
+
 signals:
 
 private slots:

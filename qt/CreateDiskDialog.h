@@ -16,6 +16,11 @@ private slots:
 	void on_passwordLineEdit_textChanged(const QString &arg1);
 	void on_repeatLineEdit_textChanged(const QString &arg1);
 
+	void on_volumeNameLineEdit_textChanged(const QString &arg1);
+
 private:
-	void verifyRepeat();
+	void validate();
+
+	bool validateName();
+	bool validatePassword();
 };

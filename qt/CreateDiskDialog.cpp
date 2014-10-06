@@ -1,4 +1,5 @@
 #include "CreateDiskDialog.h"
+#include "Disk.h"
 
 #include <QMessageBox>
 #include <QPushButton>
@@ -8,11 +9,18 @@ CreateDiskDialog::CreateDiskDialog(QWidget* parent)
 {
 	setupUi(this);
 	buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
+
+	size_t i = 2;
+	QString name = "SafeDisk";
+	while (Disk::exists(name)) {
+		name = QString("SafeDisk %1").arg(i++);
+	}
+	volumeNameLineEdit->setText(name);
 }
 
 QString CreateDiskDialog::volumeName() const
 {
-	return volumeNameLineEdit->text();
+	return volumeNameLineEdit->text().trimmed();
 }
 
 QString CreateDiskDialog::password() const
@@ -28,27 +36,53 @@ uint64_t CreateDiskDialog::size() const
 
 void CreateDiskDialog::on_passwordLineEdit_textChanged(const QString&)
 {
-	verifyRepeat();
+	validate();
 }
 
 void CreateDiskDialog::on_repeatLineEdit_textChanged(const QString&)
 {
-	verifyRepeat();
+	validate();
 }
 
-void CreateDiskDialog::verifyRepeat()
+void CreateDiskDialog::on_volumeNameLineEdit_textChanged(const QString&)
+{
+	validate();
+}
+
+void CreateDiskDialog::validate()
+{
+	auto button = buttonBox->button(QDialogButtonBox::Ok);
+	button->setEnabled(false);
+	if (validateName() && validatePassword()) {
+		button->setEnabled(true);
+	}
+}
+
+bool CreateDiskDialog::validateName()
+{
+	auto name = volumeNameLineEdit->text().trimmed();
+	if (name.isEmpty()) {
+		volumeNameLineEdit->setStyleSheet("background-color: rgb(255, 125, 125)");
+		return false;
+	}
+	if (Disk::exists(name)) {
+		volumeNameLineEdit->setStyleSheet("background-color: rgb(255, 205, 15)");
+		return false;
+	}
+	volumeNameLineEdit->setStyleSheet("");
+	return true;
+}
+
+bool CreateDiskDialog::validatePassword()
 {
 	auto password = passwordLineEdit->text();
 	auto repeat = repeatLineEdit->text();
-	auto button = buttonBox->button(QDialogButtonBox::Ok);
-
-	button->setEnabled(false);
 
 	if (password.startsWith(repeat)) {
 		if (password == repeat) {
 			repeatLineEdit->setStyleSheet("");
 			if (!password.isEmpty()) {
-				button->setEnabled(true);
+				return true;
 			}
 		}
 		else {
@@ -58,4 +92,5 @@ void CreateDiskDialog::verifyRepeat()
 	else if (password != repeat) {
 		repeatLineEdit->setStyleSheet("background-color: rgb(255, 125, 125)");
 	}
+	return false;
 }
