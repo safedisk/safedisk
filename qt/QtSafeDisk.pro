@@ -1,6 +1,10 @@
 TEMPLATE = app
 
-QMAKE_MAC_SDK = macosx10.9
+TARGET = SafeDisk
+
+QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.6
+QMAKE_INFO_PLIST = Info.plist
+
 CONFIG += c++11
 
 QT += widgets
@@ -12,12 +16,12 @@ SOURCES += \
 RESOURCES += \
     resources.qrc
 
-# Additional import path used to resolve QML modules in Qt Creator's code model
-QML_IMPORT_PATH =
-
 # Default rules for deployment.
 include(deployment.pri)
 
 HEADERS += \
     MainWindow.h \
     MakeUnique.h
+
+OTHER_FILES += \
+    Info.plist

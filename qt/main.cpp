@@ -12,6 +12,8 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	app.setQuitOnLastWindowClosed(false);
+
 	MainWindow window;
 	return app.exec();
 }
