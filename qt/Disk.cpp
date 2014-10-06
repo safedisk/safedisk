@@ -2,6 +2,8 @@
 
 #include <QDir>
 #include <QProcess>
+#include <QMessageBox>
+#include <QInputDialog>
 #include <QStandardPaths>
 
 Disk::Disk(const QString& name, QWidget* parent)
@@ -71,12 +73,27 @@ void Disk::updateState()
 
 void Disk::toggleMount()
 {
+	if (m_isLocked) {
+		m_parent->raise();
+
+		QString title = QString("Unlock \"%1\"").arg(m_name);
+		bool ok;
+		QString password = QInputDialog::getText(m_parent, title, "Password:", QLineEdit::Password, "", &ok);
+		if (password != "foo") {
+			QMessageBox::critical(m_parent, title, "Incorrect Password");
+			return;
+		}
+		revealFolder();
+	}
+
 	m_isLocked = !m_isLocked;
 	updateState();
 }
 
 void Disk::displaySettings()
 {
+	m_parent->raise();
+	QMessageBox::information(m_parent, "SafeDisk", "Restore Disk");
 }
 
 void Disk::revealFolder()

@@ -6,6 +6,9 @@
 
 MainWindow::MainWindow()
 {
+	setWindowFlags(windowType() | Qt::FramelessWindowHint);
+	resize(0, 0);
+
 	m_createAction = new QAction("Create SafeDisk", this);
 	connect(m_createAction, SIGNAL(triggered()), this, SLOT(createDisk()));
 
@@ -34,6 +37,8 @@ MainWindow::MainWindow()
 
 void MainWindow::createDisk()
 {
+	raise();
+
 	CreateDiskDialog dialog;
 	int result = dialog.exec();
 	if (result == QDialog::Accepted) {
@@ -44,5 +49,7 @@ void MainWindow::createDisk()
 
 void MainWindow::restoreDisk()
 {
+	raise();
+
 	QMessageBox::information(this, "SafeDisk", "Restore Disk");
 }
