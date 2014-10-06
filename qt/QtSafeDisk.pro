@@ -11,7 +11,9 @@ QT += widgets
 
 SOURCES += \
     main.cpp \
-    MainWindow.cpp
+    MainWindow.cpp \
+    Disk.cpp \
+    CreateDiskDialog.cpp
 
 RESOURCES += \
     resources.qrc
@@ -21,7 +23,11 @@ include(deployment.pri)
 
 HEADERS += \
     MainWindow.h \
-    MakeUnique.h
+    Disk.h \
+    CreateDiskDialog.h
 
 OTHER_FILES += \
     Info.plist
+
+FORMS += \
+    CreateDisk.ui

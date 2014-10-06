@@ -1,11 +1,12 @@
 #pragma once
 
+#include "Disk.h"
+
 #include <QMainWindow>
 #include <QSystemTrayIcon>
 #include <QAction>
 #include <QMenu>
-
-#include <memory>
+#include <QList>
 
 class MainWindow : public QMainWindow
 {
@@ -20,10 +21,14 @@ private slots:
 	void restoreDisk();
 
 private:
-	std::unique_ptr<QAction> m_createAction;
-	std::unique_ptr<QAction> m_restoreAction;
-	std::unique_ptr<QAction> m_quitAction;
+	QAction* m_createAction = nullptr;
+	QAction* m_restoreAction = nullptr;
+	QAction* m_quitAction = nullptr;
 
-	std::unique_ptr<QSystemTrayIcon> m_trayIcon;
-	std::unique_ptr<QMenu> m_trayIconMenu;
+	QSystemTrayIcon* m_trayIcon = nullptr;
+	QMenu* m_disksSubMenu = nullptr;
+	QMenu* m_trayIconMenu = nullptr;
+
+	QAction* m_disksSeparator = nullptr;
+	QList<Disk*> m_disks;
 };
