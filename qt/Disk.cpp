@@ -49,6 +49,7 @@ bool Disk::runScript(const QString& scriptName, const QStringList& args, const Q
 	QString scriptPath = appDir.filePath(scriptName);
 
 	QProcess script;
+	script.setWorkingDirectory(appDir.absolutePath());
 	script.start(scriptPath, args);
 	if (!script.waitForStarted()) {
 		return false;
