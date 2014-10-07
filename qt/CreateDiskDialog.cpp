@@ -47,8 +47,7 @@ QString CreateDiskDialog::password() const
 
 uint64_t CreateDiskDialog::size() const
 {
-	const uint64_t MB = 1000 * 1000;
-	return volumeSizeDoubleSpinBox->value() * MB;
+	return volumeSizeDoubleSpinBox->value();
 }
 
 void CreateDiskDialog::on_passwordLineEdit_textChanged(const QString&)

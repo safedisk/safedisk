@@ -2,9 +2,6 @@ TEMPLATE = app
 
 TARGET = SafeDisk
 
-QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.6
-QMAKE_INFO_PLIST = Info.plist
-
 CONFIG += c++11
 
 QT += widgets
@@ -26,8 +23,24 @@ HEADERS += \
     Disk.h \
     CreateDiskDialog.h
 
-OTHER_FILES += \
-    Info.plist
-
 FORMS += \
     CreateDisk.ui
+
+macx {
+    OTHER_FILES += \
+        Info.plist \
+        scripts/osx/create_disk.sh \
+        scripts/osx/mount_disk.sh \
+        scripts/osx/unmount_disk.sh
+
+    bundle_data.files = \
+        $$OUT_PWD/../safediskd \
+        scripts/osx/create_disk.sh \
+        scripts/osx/mount_disk.sh \
+        scripts/osx/unmount_disk.sh
+    bundle_data.path = Contents/MacOS
+
+    QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.6
+    QMAKE_INFO_PLIST = Info.plist
+    QMAKE_BUNDLE_DATA += bundle_data
+}

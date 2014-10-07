@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <signal.h>
+#include <syslog.h>
 
 const static uint64_t block_size = 1024;
 static void* bm = NULL;
@@ -267,6 +268,8 @@ struct fuse_operations safedisk_filesystem_operations = {
 // TODO: Less lame option parsing 
 int main(int argc, char** argv)
 {
+	openlog("safediskd", LOG_PID | LOG_PERROR, LOG_DAEMON);
+	
 	// Validate two extra arguments are there
 	if (argc < 4) {
 		fprintf(stderr, "usage: %s [fuse-options] <mnt_point> <block_dir> <size>\n", argv[0]);
@@ -285,6 +288,11 @@ int main(int argc, char** argv)
 		fprintf(stderr, "Unable to stat data directory: %s\n", strerror(errno));
 		exit(1);
 	}
+
+	printf("mnt_point: %s\n", argv[argc-3]);
+	printf("block_dir: %s\n", argv[argc-2]);
+	printf("size: %u\n", size);
+
 	// Ask for password
 	char* pass = getpass("Password: ");
 	// Open actual block map

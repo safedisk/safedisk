@@ -17,19 +17,28 @@
 
 #pragma once
 
-#include <QObject>
+#include <QDir>
 #include <QMenu>
+#include <QObject>
 
 class Disk : public QObject
 {
 	Q_OBJECT
-public:
+
+private:
 	explicit Disk(const QString& name, QWidget* parent);
 
+public:
 	QMenu* menu() const;
 
 	static
+	Disk* createDisk(QWidget* parent, const QString& name, const QString& password, uint64_t size);
+
+	static
 	QList<Disk*> listDisks(QWidget* parent);
+
+	static
+	QString rootPath(const QString& name);
 
 	static
 	bool exists(const QString& name);
@@ -44,6 +53,11 @@ private slots:
 private:
 	void createMenu();
 	void updateState();
+	bool mount(const QString& password);
+	void unmount();
+
+	static
+	bool runScript(const QString& scriptName, const QStringList& args, const QString& input, QStringList* output);
 
 private:
 	QString m_name;
@@ -52,5 +66,6 @@ private:
 	QAction* m_toggleAction = nullptr;
 	QAction* m_revealAction = nullptr;
 	bool m_isLocked = true;
-	QString m_rootPath;
+	QDir m_bundleDir;
+	QString m_volumePath;
 };

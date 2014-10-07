@@ -18,24 +18,108 @@
 #include "Disk.h"
 
 #include <QDir>
+#include <QFile>
+#include <QDebug>
 #include <QProcess>
+#include <QTextStream>
 #include <QMessageBox>
+#include <QApplication>
 #include <QInputDialog>
 #include <QStandardPaths>
+
+// SafeDisk bundle structure:
+// ${DataLocation}
+//   ${VolumeName}.disk
+//     blocks
+//     fuse
+//     size
 
 Disk::Disk(const QString& name, QWidget* parent)
 	: QObject(parent)
 	, m_name(name)
 	, m_parent(parent)
+	, m_bundleDir(rootPath(name))
 {
-	m_rootPath = QStandardPaths::locate(QStandardPaths::DataLocation, name, QStandardPaths::LocateDirectory);
-	if (m_rootPath.isEmpty()) {
-		QStringList paths = QStandardPaths::standardLocations(QStandardPaths::DataLocation);
-		m_rootPath = QDir::cleanPath(paths[0] + "/" + name);
-		QDir::root().mkpath(m_rootPath);
+	createMenu();
+}
+
+bool Disk::runScript(const QString& scriptName, const QStringList& args, const QString& input, QStringList* output)
+{
+	QDir appDir(QApplication::applicationDirPath());
+	QString scriptPath = appDir.filePath(scriptName);
+
+	QProcess script;
+	script.start(scriptPath, args);
+	if (!script.waitForStarted()) {
+		return false;
 	}
 
-	createMenu();
+	if (!input.isEmpty()) {
+		QTextStream stream(&script);
+		stream << input << "\n";
+		stream.flush();
+	}
+
+	if (!script.waitForFinished()) {
+		return false;
+	}
+
+	while (!script.atEnd()) {
+		QString line = script.readLine();
+		if (output) {
+			output->append(line);
+		}
+		qDebug() << line;
+	}
+
+	if (!(script.exitStatus() == QProcess::NormalExit && script.exitCode() == 0)) {
+		qDebug() << "exitStatus:" << script.exitStatus() << "exitCode:" << script.exitCode();
+		return false;
+	}
+
+	return true;
+}
+
+Disk* Disk::createDisk(QWidget* parent, const QString& name, const QString& password, uint64_t size)
+{
+	QDir bundleDir(rootPath(name));
+	qDebug() << "bundleDir:" << bundleDir.absolutePath();
+
+	QStringList args;
+	args << bundleDir.absolutePath();
+	args << name;
+	args << QString::number(size);
+
+	if (!runScript("create_disk.sh", args, password, nullptr)) {
+		QMessageBox::critical(parent, "SafeDisk", QString("Could not create disk: \"%1\"").arg(name));
+		return nullptr;
+	}
+
+	return new Disk(name, parent);
+}
+
+bool Disk::mount(const QString& password)
+{
+	QStringList args;
+	args << m_bundleDir.absolutePath();
+
+	QStringList out;
+	if (!runScript("mount_disk.sh", args, password, &out)) {
+		QMessageBox::critical(m_parent, "SafeDisk", QString("Could not unlock disk: \"%1\"").arg(m_name));
+		return nullptr;
+	}
+
+	m_volumePath = out.first().trimmed();
+	return true;
+}
+
+void Disk::unmount()
+{
+	QDir appDir(QApplication::applicationDirPath());
+	QString scriptPath = appDir.filePath("unmount_disk.sh");
+	QStringList args;
+	args << m_volumePath;
+	QProcess::startDetached(scriptPath, args);
 }
 
 QList<Disk*> Disk::listDisks(QWidget* parent)
@@ -44,16 +128,24 @@ QList<Disk*> Disk::listDisks(QWidget* parent)
 	QStringList paths = QStandardPaths::standardLocations(QStandardPaths::DataLocation);
 	QDir::root().mkpath(paths[0]);
 	QDir dataPath(paths[0]);
-	QStringList disks = dataPath.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+	QStringList filters;
+	filters << "*.disk";
+	QFileInfoList disks = dataPath.entryInfoList(filters, QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
 	for (auto it = disks.cbegin(); it != disks.cend(); it++) {
-		diskList.append(new Disk(*it, parent));
+		diskList.append(new Disk(it->baseName(), parent));
 	}
 	return diskList;
 }
 
+QString Disk::rootPath(const QString& name)
+{
+	QStringList paths = QStandardPaths::standardLocations(QStandardPaths::DataLocation);
+	return QDir::cleanPath(paths[0] + "/" + name + ".disk");
+}
+
 bool Disk::exists(const QString& name)
 {
-	return !QStandardPaths::locate(QStandardPaths::DataLocation, name, QStandardPaths::LocateDirectory).isEmpty();
+	return !QStandardPaths::locate(QStandardPaths::DataLocation, name + ".disk", QStandardPaths::LocateDirectory).isEmpty();
 }
 
 QMenu* Disk::menu() const
@@ -96,11 +188,16 @@ void Disk::toggleMount()
 		QString title = QString("Unlock \"%1\"").arg(m_name);
 		bool ok;
 		QString password = QInputDialog::getText(m_parent, title, "Password:", QLineEdit::Password, "", &ok);
-		if (password != "foo") {
-			QMessageBox::critical(m_parent, title, "Incorrect Password");
+		if (!ok) {
+			return;
+		}
+		if (!mount(password)) {
 			return;
 		}
 		revealFolder();
+	}
+	else {
+		unmount();
 	}
 
 	m_isLocked = !m_isLocked;
@@ -117,11 +214,11 @@ void Disk::revealFolder()
 {
 #if defined(Q_OS_OSX)
 	QStringList args;
-	args << m_rootPath;
+	args << m_volumePath;
 	QProcess::startDetached("open", args);
 #elif defined(Q_OS_WIN)
 	QStringList args;
-	args << "/select," << m_rootPath;
+	args << "/select," << m_volumePath;
 	QProcess::startDetached("explorer", args);
 #else
 #endif

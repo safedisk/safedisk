@@ -59,8 +59,10 @@ void MainWindow::createDisk()
 	CreateDiskDialog dialog;
 	int result = dialog.exec();
 	if (result == QDialog::Accepted) {
-		Disk* disk = new Disk(dialog.volumeName(), this);
-		m_trayIconMenu->insertMenu(m_disksSeparator, disk->menu());
+		Disk* disk = Disk::createDisk(this, dialog.volumeName(), dialog.password(), dialog.size());
+		if (disk) {
+			m_trayIconMenu->insertMenu(m_disksSeparator, disk->menu());
+		}
 	}
 }
 

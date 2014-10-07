@@ -83,6 +83,7 @@ block_file::block_file(const cipher_key_t& key)
 
 bool block_file::open(const string& _dir) 
 {
+	syslog(LOG_ERR, "block_file::open> %s", _dir.c_str());
 	m_dir = _dir;
 	// Try for recovery
 	DIR *dir = opendir(m_dir.c_str());
@@ -95,13 +96,14 @@ bool block_file::open(const string& _dir)
 	}
 	// Open the directory for a scan
 	if (dir == NULL) {
-		syslog(LOG_ERR, "Unable to open directory: %s", strerror(errno));
+		syslog(LOG_ERR, "block_file::open> opendir() failed: %s", strerror(errno));
 		return false;
 	}
 	// Find lowest and highest entries
 	struct dirent *de;
 	uint64_t low_chunk = -1;
 	uint64_t high_chunk = 0;
+	errno = 0;
 	while ((de = readdir(dir)) != NULL) {
 		if (de->d_name[0] == '.') {
 			continue;
@@ -118,10 +120,13 @@ bool block_file::open(const string& _dir)
 		low_chunk = std::min(low_chunk, num);
 		high_chunk = std::max(high_chunk, num);
 	}
-	closedir(dir);
+	int last_errno = errno;
+	if (closedir(dir) == -1) {
+		syslog(LOG_ERR, "block_file::open> closedir() failed: %s", strerror(errno));
+	}
 	// Make sure we didn't err out of the loop
-	if (errno != 0) {
-		syslog(LOG_ERR, "Error during directory scan: %s", strerror(errno));
+	if (last_errno) {
+		syslog(LOG_ERR, "block_file::open> readdir() failed: %s", strerror(last_errno));
 		return false;
 	}
 	// Fix low chunk for empty directory case

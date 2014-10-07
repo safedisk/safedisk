@@ -77,7 +77,7 @@ def build_daemon(variant, flags):
 	test_objs = compile_cxx(build_dir, 'src/test', TEST_FLAGS + flags)
 	fuse_objs = compile_c(build_dir, 'src/fuse', FUSE_FLAGS + flags)
 	link_exe(build_dir, 'unittest', lib_objs + test_objs)
-	link_exe(build_dir, 'safedisk', lib_objs + fuse_objs, 
+	link_exe(build_dir, 'safediskd', lib_objs + fuse_objs, 
 		pkg_config('--libs', 'fuse') + [
 			'-Wno-error=unused-command-line-argument'
 		]
