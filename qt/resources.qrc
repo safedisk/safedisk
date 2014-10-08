@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/glyphicons_179_eject.png</file>
+        <file>images/glyphicons_203_lock.png</file>
+        <file>images/glyphicons_240_rotation_lock.png</file>
+        <file>images/glyphicons_204_unlock.png</file>
+    </qresource>
+</RCC>

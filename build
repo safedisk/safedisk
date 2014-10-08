@@ -61,31 +61,42 @@ def compile_cxx(build_dir, src_dir, flags):
 def compile_c(build_dir, src_dir, flags):
 	return compile(build_dir, src_dir, flags, CC, '*.c')
 
-def link_exe(build_dir, name, objs, extra_flags = []):
+def link_exe(build_dir, name, objs, flags = []):
 	exe_name = oname(build_dir, name)
-	run(CXX, objs, LD_FLAGS + extra_flags, '-o', exe_name, after='compile')
+	run(CXX, objs, LD_FLAGS + flags, '-o', exe_name, after='compile')
 
 def link_so(build_dir, name, objs):
 	so_name = oname(build_dir, name, '.so')
-	run(CXX, objs, LD_FLAGS + extra_flags, '-shared', '-o', so_name, after='compile')
+	run(CXX, objs, LD_FLAGS + flags, '-shared', '-o', so_name, after='compile')
 
-def build_all(build_dir, extra_flags):
+def build_daemon(variant, flags):
+	build_dir = 'out/{}'.format(variant)
+
 	mkdir(build_dir)
-	lib_objs = compile_cxx(build_dir, 'src/lib', LIB_FLAGS + extra_flags)
-	test_objs = compile_cxx(build_dir, 'src/test', TEST_FLAGS + extra_flags)
-	fuse_objs = compile_c(build_dir, 'src/fuse', FUSE_FLAGS + extra_flags)
+	lib_objs = compile_cxx(build_dir, 'src/lib', LIB_FLAGS + flags)
+	test_objs = compile_cxx(build_dir, 'src/test', TEST_FLAGS + flags)
+	fuse_objs = compile_c(build_dir, 'src/fuse', FUSE_FLAGS + flags)
 	link_exe(build_dir, 'unittest', lib_objs + test_objs)
-	link_exe(build_dir, 'safedisk', lib_objs + fuse_objs, 
+	link_exe(build_dir, 'safediskd', lib_objs + fuse_objs, 
 		pkg_config('--libs', 'fuse') + [
 			'-Wno-error=unused-command-line-argument'
 		]
 	)
 
+def build_qt(variant, flags):
+	build_dir = os.path.join(os.getcwd(), 'out', variant, 'qt')
+	Makefile = os.path.join(build_dir, 'Makefile')
+
+	run('qmake', 'qt/QtSafeDisk.pro', 'CONFIG+=x86_64', flags, '-o', Makefile)
+	run('make', '-C', build_dir)
+
 def build():
-	build_all('out/release', ['-O3'])
+	build_daemon('release', ['-O3'])
+	build_qt('release', [])
 
 def debug():
-	build_all('out/debug', ['-g'])
+	build_daemon('debug', ['-g'])
+	build_qt('debug', ['CONFIG+=debug'])
 
 def clean():
 	autoclean()
