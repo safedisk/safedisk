@@ -36,6 +36,7 @@ signals:
 private slots:
 	void createDisk();
 	void restoreDisk();
+	void updateState();
 
 private:
 	QAction* m_createAction = nullptr;

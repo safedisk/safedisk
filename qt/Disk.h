@@ -43,11 +43,11 @@ public:
 	static
 	bool exists(const QString& name);
 
-signals:
+public slots:
+	void revealFolder();
 
 private slots:
 	void toggleMount();
-	void revealFolder();
 	void displaySettings();
 
 private:
@@ -56,8 +56,11 @@ private:
 	bool mount(const QString& password);
 	void unmount();
 
+	bool isMounted() const;
+	QString volumePath() const;
+
 	static
-	bool runScript(const QString& scriptName, const QStringList& args, const QString& input, QStringList* output);
+	bool runScript(const QString& scriptName, const QStringList& args, const QString& input);
 
 private:
 	QString m_name;
@@ -65,7 +68,5 @@ private:
 	QMenu* m_menu = nullptr;
 	QAction* m_toggleAction = nullptr;
 	QAction* m_revealAction = nullptr;
-	bool m_isLocked = true;
 	QDir m_bundleDir;
-	QString m_volumePath;
 };

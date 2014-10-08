@@ -33,6 +33,7 @@
 //     blocks
 //     fuse
 //     size
+//     volume -> /Volumes/${VolumeName}
 
 Disk::Disk(const QString& name, QWidget* parent)
 	: QObject(parent)
@@ -43,7 +44,18 @@ Disk::Disk(const QString& name, QWidget* parent)
 	createMenu();
 }
 
-bool Disk::runScript(const QString& scriptName, const QStringList& args, const QString& input, QStringList* output)
+bool Disk::isMounted() const
+{
+	QFileInfo fi(volumePath());
+	return fi.exists();
+}
+
+QString Disk::volumePath() const
+{
+	return m_bundleDir.filePath("volume");
+}
+
+bool Disk::runScript(const QString& scriptName, const QStringList& args, const QString& input)
 {
 	QDir appDir(QApplication::applicationDirPath());
 	QString scriptPath = appDir.filePath(scriptName);
@@ -66,11 +78,7 @@ bool Disk::runScript(const QString& scriptName, const QStringList& args, const Q
 	}
 
 	while (!script.atEnd()) {
-		QString line = script.readLine();
-		if (output) {
-			output->append(line);
-		}
-		qDebug() << line;
+		qDebug() << script.readLine();
 	}
 
 	if (!(script.exitStatus() == QProcess::NormalExit && script.exitCode() == 0)) {
@@ -88,10 +96,9 @@ Disk* Disk::createDisk(QWidget* parent, const QString& name, const QString& pass
 
 	QStringList args;
 	args << bundleDir.absolutePath();
-	args << name;
 	args << QString::number(size);
 
-	if (!runScript("create_disk.sh", args, password, nullptr)) {
+	if (!runScript("create_disk.sh", args, password)) {
 		QMessageBox::critical(parent, "SafeDisk", QString("Could not create disk: \"%1\"").arg(name));
 		return nullptr;
 	}
@@ -104,13 +111,11 @@ bool Disk::mount(const QString& password)
 	QStringList args;
 	args << m_bundleDir.absolutePath();
 
-	QStringList out;
-	if (!runScript("mount_disk.sh", args, password, &out)) {
+	if (!runScript("mount_disk.sh", args, password)) {
 		QMessageBox::critical(m_parent, "SafeDisk", QString("Could not unlock disk: \"%1\"").arg(m_name));
 		return nullptr;
 	}
 
-	m_volumePath = out.first().trimmed();
 	return true;
 }
 
@@ -119,7 +124,7 @@ void Disk::unmount()
 	QDir appDir(QApplication::applicationDirPath());
 	QString scriptPath = appDir.filePath("unmount_disk.sh");
 	QStringList args;
-	args << m_volumePath;
+	args << volumePath();
 	QProcess::startDetached(scriptPath, args);
 }
 
@@ -167,23 +172,26 @@ void Disk::createMenu()
 
 void Disk::updateState()
 {
-	if (m_isLocked) {
-		m_menu->setIcon(QIcon(":/images/glyphicons_203_lock.png"));
-		m_toggleAction->setText("Unlock");
-//		m_toggleAction->setIcon(QIcon(":/images/glyphicons_179_eject.png"));
-		m_revealAction->setEnabled(false);
-	}
-	else {
+	if (isMounted()) {
 		m_menu->setIcon(QIcon(":/images/glyphicons_204_unlock.png"));
 		m_toggleAction->setText("Lock");
 		m_toggleAction->setIcon(QIcon());
 		m_revealAction->setEnabled(true);
 	}
+	else {
+		m_menu->setIcon(QIcon(":/images/glyphicons_203_lock.png"));
+		m_toggleAction->setText("Unlock");
+//		m_toggleAction->setIcon(QIcon(":/images/glyphicons_179_eject.png"));
+		m_revealAction->setEnabled(false);
+	}
 }
 
 void Disk::toggleMount()
 {
-	if (m_isLocked) {
+	if (isMounted()) {
+		unmount();
+	}
+	else {
 		m_parent->raise();
 
 		QString title = QString("Unlock \"%1\"").arg(m_name);
@@ -197,11 +205,7 @@ void Disk::toggleMount()
 		}
 		revealFolder();
 	}
-	else {
-		unmount();
-	}
 
-	m_isLocked = !m_isLocked;
 	updateState();
 }
 
@@ -215,11 +219,11 @@ void Disk::revealFolder()
 {
 #if defined(Q_OS_OSX)
 	QStringList args;
-	args << m_volumePath;
+	args << volumePath();
 	QProcess::startDetached("open", args);
 #elif defined(Q_OS_WIN)
 	QStringList args;
-	args << "/select," << m_volumePath;
+	args << "/select," << volumePath();
 	QProcess::startDetached("explorer", args);
 #else
 #endif

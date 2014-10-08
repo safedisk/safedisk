@@ -47,9 +47,9 @@ MainWindow::MainWindow()
 	m_trayIcon->setIcon(QIcon(":/images/glyphicons_240_rotation_lock.png"));
 	m_trayIcon->show();
 
-	for (auto disk : Disk::listDisks(this)) {
-		m_trayIconMenu->insertMenu(m_disksSeparator, disk->menu());
-	}
+	connect(m_trayIconMenu, SIGNAL(aboutToShow()), this, SLOT(updateState()));
+
+	updateState();
 }
 
 void MainWindow::createDisk()
@@ -62,6 +62,8 @@ void MainWindow::createDisk()
 		Disk* disk = Disk::createDisk(this, dialog.volumeName(), dialog.password(), dialog.size());
 		if (disk) {
 			m_trayIconMenu->insertMenu(m_disksSeparator, disk->menu());
+			m_disks.append(disk);
+			disk->revealFolder();
 		}
 	}
 }
@@ -71,4 +73,19 @@ void MainWindow::restoreDisk()
 	raise();
 
 	QMessageBox::information(this, "SafeDisk", "Restore Disk");
+}
+
+void MainWindow::updateState()
+{
+	for (auto disk : m_disks) {
+		m_trayIconMenu->removeAction(disk->menu()->menuAction());
+		delete disk;
+	}
+
+	m_disks.clear();
+
+	for (auto disk : Disk::listDisks(this)) {
+		m_trayIconMenu->insertMenu(m_disksSeparator, disk->menu());
+		m_disks.append(disk);
+	}
 }
