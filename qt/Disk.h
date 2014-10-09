@@ -32,16 +32,23 @@ public:
 	QMenu* menu() const;
 
 	static
-	Disk* createDisk(QWidget* parent, const QString& name, const QString& password, uint64_t size);
+	Disk* createDisk(QWidget* parent,
+					 const QString& dirName,
+					 const QString& name,
+					 const QString& password,
+					 uint64_t size);
+
+	static
+	Disk* attachDisk(QWidget* parent);
 
 	static
 	QList<Disk*> listDisks(QWidget* parent);
 
 	static
-	QString rootPath(const QString& name);
+	QString systemPath(const QString& name);
 
 	static
-	bool exists(const QString& name);
+	bool collision(const QString& dirName, const QString& name);
 
 public slots:
 	void revealFolder();
@@ -53,9 +60,11 @@ private slots:
 private:
 	void createMenu();
 	void updateState();
-	bool mount(const QString& password);
+	bool mount();
 	void unmount();
+	void find();
 
+	bool isValid() const;
 	bool isMounted() const;
 	QString volumePath() const;
 

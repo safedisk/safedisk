@@ -40,7 +40,7 @@ private slots:
 
 private:
 	QAction* m_createAction = nullptr;
-	QAction* m_restoreAction = nullptr;
+	QAction* m_attachAction = nullptr;
 	QAction* m_quitAction = nullptr;
 
 	QSystemTrayIcon* m_trayIcon = nullptr;

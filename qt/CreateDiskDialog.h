@@ -25,6 +25,7 @@ class CreateDiskDialog : public QDialog, private Ui::CreateDisk
 public:
 	explicit CreateDiskDialog(QWidget* parent = nullptr);
 
+	QString storagePath() const;
 	QString volumeName() const;
 	QString password() const;
 	uint64_t size() const;
@@ -33,6 +34,8 @@ private slots:
 	void on_passwordLineEdit_textChanged(const QString &arg1);
 	void on_repeatLineEdit_textChanged(const QString &arg1);
 	void on_volumeNameLineEdit_textChanged(const QString &arg1);
+
+	void on_choosePushButton_clicked();
 
 private:
 	void validate();

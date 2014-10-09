@@ -4,5 +4,6 @@
         <file>images/glyphicons_203_lock.png</file>
         <file>images/glyphicons_240_rotation_lock.png</file>
         <file>images/glyphicons_204_unlock.png</file>
+        <file>images/glyphicons_199_ban.png</file>
     </qresource>
 </RCC>

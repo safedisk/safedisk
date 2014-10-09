@@ -20,19 +20,30 @@
 
 #include <QMessageBox>
 #include <QPushButton>
+#include <QFileDialog>
+#include <QStandardPaths>
 
 CreateDiskDialog::CreateDiskDialog(QWidget* parent)
 	: QDialog(parent)
 {
 	setupUi(this);
+
 	buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
+
+	QStringList paths = QStandardPaths::standardLocations(QStandardPaths::DesktopLocation);
+	storagePathText->setText(paths[0]);
 
 	size_t i = 2;
 	QString name = "SafeDisk";
-	while (Disk::exists(name)) {
+	while (Disk::collision(storagePath(), name)) {
 		name = QString("SafeDisk %1").arg(i++);
 	}
 	volumeNameLineEdit->setText(name);
+}
+
+QString CreateDiskDialog::storagePath() const
+{
+	return storagePathText->text().trimmed();
 }
 
 QString CreateDiskDialog::volumeName() const
@@ -81,7 +92,7 @@ bool CreateDiskDialog::validateName()
 		volumeNameLineEdit->setStyleSheet("background-color: rgb(255, 125, 125)");
 		return false;
 	}
-	if (Disk::exists(name)) {
+	if (Disk::collision(storagePath(), name)) {
 		volumeNameLineEdit->setStyleSheet("background-color: rgb(255, 205, 15)");
 		return false;
 	}
@@ -109,4 +120,15 @@ bool CreateDiskDialog::validatePassword()
 		repeatLineEdit->setStyleSheet("background-color: rgb(255, 125, 125)");
 	}
 	return false;
+}
+
+void CreateDiskDialog::on_choosePushButton_clicked()
+{
+	QString dirName = QFileDialog::getExistingDirectory(this, "Choose Storage Directory", storagePath());
+	if (dirName.isEmpty()) {
+		return;
+	}
+
+	storagePathText->setText(dirName);
+	validate();
 }

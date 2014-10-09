@@ -20,6 +20,10 @@
 #include <QApplication>
 #include <QMessageBox>
 
+// TODO:
+// http://doc.qt.digia.com/qq/qq12-mac-events.html
+// Add attribution for glyphicons or replace icons with better ones
+
 int main(int argc, char *argv[])
 {
 	QApplication app(argc, argv);

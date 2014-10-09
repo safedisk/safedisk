@@ -29,15 +29,15 @@ MainWindow::MainWindow()
 	m_createAction = new QAction("Create SafeDisk", this);
 	connect(m_createAction, SIGNAL(triggered()), this, SLOT(createDisk()));
 
-	m_restoreAction = new QAction("Restore SafeDisk", this);
-	connect(m_restoreAction, SIGNAL(triggered()), this, SLOT(restoreDisk()));
+	m_attachAction = new QAction("Attach SafeDisk", this);
+	connect(m_attachAction, SIGNAL(triggered()), this, SLOT(restoreDisk()));
 
 	m_quitAction = new QAction("&Quit", this);
 	connect(m_quitAction, SIGNAL(triggered()), QApplication::instance(), SLOT(quit()));
 
 	m_trayIconMenu = new QMenu(this);
 	m_trayIconMenu->addAction(m_createAction);
-	m_trayIconMenu->addAction(m_restoreAction);
+	m_trayIconMenu->addAction(m_attachAction);
 	m_trayIconMenu->addSeparator();
 	m_disksSeparator = m_trayIconMenu->addSeparator();
 	m_trayIconMenu->addAction(m_quitAction);
@@ -48,8 +48,6 @@ MainWindow::MainWindow()
 	m_trayIcon->show();
 
 	connect(m_trayIconMenu, SIGNAL(aboutToShow()), this, SLOT(updateState()));
-
-	updateState();
 }
 
 void MainWindow::createDisk()
@@ -59,7 +57,12 @@ void MainWindow::createDisk()
 	CreateDiskDialog dialog;
 	int result = dialog.exec();
 	if (result == QDialog::Accepted) {
-		Disk* disk = Disk::createDisk(this, dialog.volumeName(), dialog.password(), dialog.size());
+		Disk* disk = Disk::createDisk(
+					this,
+					dialog.storagePath(),
+					dialog.volumeName(),
+					dialog.password(),
+					dialog.size());
 		if (disk) {
 			m_trayIconMenu->insertMenu(m_disksSeparator, disk->menu());
 			m_disks.append(disk);
@@ -71,8 +74,8 @@ void MainWindow::createDisk()
 void MainWindow::restoreDisk()
 {
 	raise();
-
-	QMessageBox::information(this, "SafeDisk", "Restore Disk");
+	Disk::attachDisk(this);
+	updateState();
 }
 
 void MainWindow::updateState()

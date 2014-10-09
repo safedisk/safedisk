@@ -23,6 +23,7 @@
 #include <QProcess>
 #include <QTextStream>
 #include <QMessageBox>
+#include <QFileDialog>
 #include <QApplication>
 #include <QInputDialog>
 #include <QStandardPaths>
@@ -39,7 +40,7 @@ Disk::Disk(const QString& name, QWidget* parent)
 	: QObject(parent)
 	, m_name(name)
 	, m_parent(parent)
-	, m_bundleDir(rootPath(name))
+	, m_bundleDir(systemPath(name))
 {
 	createMenu();
 }
@@ -50,6 +51,11 @@ bool Disk::isMounted() const
 	return fi.exists();
 }
 
+bool Disk::isValid() const
+{
+	return m_bundleDir.exists();
+}
+
 QString Disk::volumePath() const
 {
 	return m_bundleDir.filePath("volume");
@@ -57,6 +63,8 @@ QString Disk::volumePath() const
 
 bool Disk::runScript(const QString& scriptName, const QStringList& args, const QString& input)
 {
+	qDebug() << scriptName << args;
+
 	QDir appDir(QApplication::applicationDirPath());
 	QString scriptPath = appDir.filePath(scriptName);
 
@@ -89,13 +97,18 @@ bool Disk::runScript(const QString& scriptName, const QStringList& args, const Q
 	return true;
 }
 
-Disk* Disk::createDisk(QWidget* parent, const QString& name, const QString& password, uint64_t size)
+Disk* Disk::createDisk(
+		QWidget* parent,
+		const QString& dirName,
+		const QString& name,
+		const QString& password,
+		uint64_t size)
 {
-	QDir bundleDir(rootPath(name));
-	qDebug() << "bundleDir:" << bundleDir.absolutePath();
+	QDir dir(dirName);
+	QDir diskDir(dir.filePath(name) + ".disk");
 
 	QStringList args;
-	args << bundleDir.absolutePath();
+	args << diskDir.absolutePath();
 	args << QString::number(size);
 
 	if (!runScript("create_disk.sh", args, password)) {
@@ -103,19 +116,58 @@ Disk* Disk::createDisk(QWidget* parent, const QString& name, const QString& pass
 		return nullptr;
 	}
 
+	QFile::link(diskDir.absolutePath(), systemPath(name));
+
 	return new Disk(name, parent);
 }
 
-bool Disk::mount(const QString& password)
+Disk* Disk::attachDisk(QWidget* parent)
 {
+	QStringList paths = QStandardPaths::standardLocations(QStandardPaths::DesktopLocation);
+	QString dirName = QFileDialog::getExistingDirectory(parent, "Attach SafeDisk", paths[0]);
+	if (dirName.isEmpty()) {
+		return nullptr;
+	}
+
+	QString name = QFileInfo(dirName).baseName();
+
+	if (QDir(systemPath(name)).exists()) {
+		QMessageBox::critical(parent, "SafeDisk", QString("A SafeDisk with the name \"%1\" already exists").arg(name));
+		return nullptr;
+	}
+
+	QFile::link(dirName, systemPath(name));
+
+	Disk* disk = new Disk(name, parent);
+	if (!disk->mount()) {
+		delete disk;
+		QFile::remove(systemPath(name));
+		return nullptr;
+	}
+
+	return disk;
+}
+
+bool Disk::mount()
+{
+	m_parent->raise();
+
+	QString title = QString("Unlock \"%1\"").arg(m_name);
+	bool ok;
+	QString password = QInputDialog::getText(m_parent, title, "Password:", QLineEdit::Password, "", &ok);
+	if (!ok) {
+		return false;
+	}
+
 	QStringList args;
 	args << m_bundleDir.absolutePath();
 
 	if (!runScript("mount_disk.sh", args, password)) {
 		QMessageBox::critical(m_parent, "SafeDisk", QString("Could not unlock disk: \"%1\"").arg(m_name));
-		return nullptr;
+		return false;
 	}
 
+	revealFolder();
 	return true;
 }
 
@@ -136,22 +188,25 @@ QList<Disk*> Disk::listDisks(QWidget* parent)
 	QDir dataPath(paths[0]);
 	QStringList filters;
 	filters << "*.disk";
-	QFileInfoList disks = dataPath.entryInfoList(filters, QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+	QFileInfoList disks = dataPath.entryInfoList(filters, QDir::Dirs | QDir::NoDotAndDotDot | QDir::System, QDir::Name);
 	for (auto it = disks.cbegin(); it != disks.cend(); it++) {
 		diskList.append(new Disk(it->baseName(), parent));
 	}
 	return diskList;
 }
 
-QString Disk::rootPath(const QString& name)
+QString Disk::systemPath(const QString& name)
 {
 	QStringList paths = QStandardPaths::standardLocations(QStandardPaths::DataLocation);
 	return QDir::cleanPath(paths[0] + "/" + name + ".disk");
 }
 
-bool Disk::exists(const QString& name)
+bool Disk::collision(const QString& dirName, const QString& name)
 {
-	return !QStandardPaths::locate(QStandardPaths::DataLocation, name + ".disk", QStandardPaths::LocateDirectory).isEmpty();
+	QString fullName = name + ".disk";
+	return QDir(dirName).exists(fullName) ||
+			QDir(systemPath(name)).exists() ||
+			QFileInfo(systemPath(name)).isSymLink();
 }
 
 QMenu* Disk::menu() const
@@ -165,48 +220,70 @@ void Disk::createMenu()
 
 	m_toggleAction = m_menu->addAction("", this, SLOT(toggleMount()));
 	m_revealAction = m_menu->addAction("Reveal Folder", this, SLOT(revealFolder()));
-	m_menu->addAction("Settings...", this, SLOT(displaySettings()));
+//	m_menu->addAction("Settings...", this, SLOT(displaySettings()));
 
 	updateState();
 }
 
 void Disk::updateState()
 {
-	if (isMounted()) {
-		m_menu->setIcon(QIcon(":/images/glyphicons_204_unlock.png"));
-		m_toggleAction->setText("Lock");
-		m_toggleAction->setIcon(QIcon());
-		m_revealAction->setEnabled(true);
+	if (isValid()) {
+		if (isMounted()) {
+			m_menu->setIcon(QIcon(":/images/glyphicons_204_unlock.png"));
+			m_toggleAction->setText("Lock");
+//			m_toggleAction->setIcon(QIcon());
+			m_revealAction->setEnabled(true);
+		}
+		else {
+			m_menu->setIcon(QIcon(":/images/glyphicons_203_lock.png"));
+			m_toggleAction->setText("Unlock");
+	//		m_toggleAction->setIcon(QIcon(":/images/glyphicons_179_eject.png"));
+			m_revealAction->setEnabled(false);
+		}
 	}
 	else {
-		m_menu->setIcon(QIcon(":/images/glyphicons_203_lock.png"));
-		m_toggleAction->setText("Unlock");
-//		m_toggleAction->setIcon(QIcon(":/images/glyphicons_179_eject.png"));
+		m_menu->setIcon(QIcon(":/images/glyphicons_199_ban.png"));
+		m_toggleAction->setText("Find");
+//		m_toggleAction->setIcon(QIcon());
 		m_revealAction->setEnabled(false);
 	}
 }
 
 void Disk::toggleMount()
 {
-	if (isMounted()) {
-		unmount();
+	if (isValid()) {
+		if (isMounted()) {
+			unmount();
+		}
+		else {
+			mount();
+		}
 	}
 	else {
-		m_parent->raise();
-
-		QString title = QString("Unlock \"%1\"").arg(m_name);
-		bool ok;
-		QString password = QInputDialog::getText(m_parent, title, "Password:", QLineEdit::Password, "", &ok);
-		if (!ok) {
-			return;
-		}
-		if (!mount(password)) {
-			return;
-		}
-		revealFolder();
+		find();
 	}
 
 	updateState();
+}
+
+void Disk::find()
+{
+	QStringList paths = QStandardPaths::standardLocations(QStandardPaths::DesktopLocation);
+	QString dirName = QFileDialog::getExistingDirectory(m_parent, "Find SafeDisk", paths[0]);
+	if (dirName.isEmpty()) {
+		return;
+	}
+
+	QFileInfo fi(m_bundleDir.absolutePath());
+	QString old = fi.symLinkTarget();
+
+	QFile::remove(m_bundleDir.absolutePath());
+	QFile::link(dirName, m_bundleDir.absolutePath());
+
+	if (!mount()) {
+		QFile::remove(m_bundleDir.absolutePath());
+		QFile::link(old, m_bundleDir.absolutePath());
+	}
 }
 
 void Disk::displaySettings()

@@ -6,27 +6,30 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>365</width>
-    <height>183</height>
+    <width>438</width>
+    <height>225</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Create SafeDisk</string>
   </property>
+  <property name="modal">
+   <bool>true</bool>
+  </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="0" column="0">
+   <item row="2" column="0">
     <layout class="QGridLayout" name="gridLayout_2">
-     <item row="0" column="0">
-      <widget class="QLabel" name="volumeNameLabel">
+     <item row="2" column="0">
+      <widget class="QLabel" name="passwordLabel">
        <property name="text">
-        <string>Volume Name</string>
+        <string>Password</string>
        </property>
       </widget>
      </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="volumeNameLineEdit">
+     <item row="3" column="0">
+      <widget class="QLabel" name="repeatLabel">
        <property name="text">
-        <string>SafeDisk</string>
+        <string>Repeat</string>
        </property>
       </widget>
      </item>
@@ -37,7 +40,49 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="1">
+     <item row="0" column="0">
+      <widget class="QLabel" name="volumeNameLabel">
+       <property name="text">
+        <string>Volume Name</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="3">
+      <widget class="QPushButton" name="choosePushButton">
+       <property name="text">
+        <string>Choose...</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QLabel" name="storagePathLabel">
+       <property name="text">
+        <string>Where</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QLabel" name="storagePathText">
+       <property name="text">
+        <string>/Users/user/Desktop</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1" colspan="3">
+      <widget class="QLineEdit" name="repeatLineEdit">
+       <property name="echoMode">
+        <enum>QLineEdit::Password</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1" colspan="3">
+      <widget class="QLineEdit" name="passwordLineEdit">
+       <property name="echoMode">
+        <enum>QLineEdit::Password</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1" colspan="3">
       <widget class="QDoubleSpinBox" name="volumeSizeDoubleSpinBox">
        <property name="suffix">
         <string> MB</string>
@@ -56,37 +101,16 @@
        </property>
       </widget>
      </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="passwordLabel">
+     <item row="0" column="1" colspan="3">
+      <widget class="QLineEdit" name="volumeNameLineEdit">
        <property name="text">
-        <string>Password</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QLineEdit" name="passwordLineEdit">
-       <property name="echoMode">
-        <enum>QLineEdit::Password</enum>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="repeatLabel">
-       <property name="text">
-        <string>Repeat</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="1">
-      <widget class="QLineEdit" name="repeatLineEdit">
-       <property name="echoMode">
-        <enum>QLineEdit::Password</enum>
+        <string>SafeDisk</string>
        </property>
       </widget>
      </item>
     </layout>
    </item>
-   <item row="1" column="0">
+   <item row="5" column="0">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="enabled">
       <bool>true</bool>
@@ -104,6 +128,13 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>volumeNameLineEdit</tabstop>
+  <tabstop>volumeSizeDoubleSpinBox</tabstop>
+  <tabstop>passwordLineEdit</tabstop>
+  <tabstop>repeatLineEdit</tabstop>
+  <tabstop>choosePushButton</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>
@@ -113,12 +144,12 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>248</x>
-     <y>254</y>
+     <x>254</x>
+     <y>220</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
-     <y>274</y>
+     <y>224</y>
     </hint>
    </hints>
   </connection>
@@ -129,12 +160,12 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>260</y>
+     <x>322</x>
+     <y>220</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>
-     <y>274</y>
+     <y>224</y>
     </hint>
    </hints>
   </connection>
