@@ -294,6 +294,8 @@ void Disk::displaySettings()
 
 void Disk::revealFolder()
 {
+	qDebug() << "reveal" << volumePath();
+
 #if defined(Q_OS_OSX)
 	QStringList args;
 	args << volumePath();
