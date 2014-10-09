@@ -27,9 +27,9 @@ device=$(hdiutil attach -imagekey diskimage-class=CRawDiskImage -nomount "$stora
 newfs_hfs -v "$name" $device
 
 hdiutil detach $device
-hdiutil attach -imagekey diskimage-class=CRawDiskImage "$storage_path/fuse/data"
+volume=$(hdiutil attach -imagekey diskimage-class=CRawDiskImage "$storage_path/fuse/data" | cut -f3-)
 
 trap on_exit2 EXIT
 
 rm -f "$storage_path/volume"
-ln -s "/Volumes/$name" "$storage_path/volume"
+ln -s "$volume" "$storage_path/volume"

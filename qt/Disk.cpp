@@ -27,9 +27,9 @@
 #include <QInputDialog>
 #include <QStandardPaths>
 
-// SafeDisk bundle structure:
+// SafeDisk system structure:
 // ${DataLocation}
-//   ${VolumeName}.disk
+//   ${DiskName}.disk
 //     blocks
 //     fuse
 //     size

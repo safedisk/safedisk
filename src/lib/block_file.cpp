@@ -83,7 +83,6 @@ block_file::block_file(const cipher_key_t& key)
 
 bool block_file::open(const string& _dir) 
 {
-	syslog(LOG_ERR, "block_file::open> %s", _dir.c_str());
 	m_dir = _dir;
 	// Try for recovery
 	DIR *dir = opendir(m_dir.c_str());
@@ -122,7 +121,7 @@ bool block_file::open(const string& _dir)
 	}
 	int last_errno = errno;
 	if (closedir(dir) == -1) {
-		syslog(LOG_ERR, "block_file::open> closedir() failed: %s", strerror(errno));
+		syslog(LOG_WARNING, "block_file::open> closedir() failed: %s", strerror(errno));
 	}
 	// Make sure we didn't err out of the loop
 	if (last_errno) {
