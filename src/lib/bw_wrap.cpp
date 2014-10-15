@@ -20,6 +20,7 @@
 #include "digest.h"
 #include <unistd.h>
 #include <sys/stat.h>
+#include <arpa/inet.h>
 
 struct meta_data
 {
