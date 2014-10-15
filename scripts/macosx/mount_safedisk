@@ -26,11 +26,8 @@ function error_exit
 [[ $# -eq 1 ]] || error_exit "usage: make_safedisk <storage_path>"
 
 storage_path=$1
-size_MB=`cat $storage_path/size`
 
-[[ $size_MB -gt 0 && $size_MB -le 1000000 ]] || error_exit "Size in MB is not in range"
-
-out/release/safedisk $storage_path/fuse_mnt $storage_path/data $size_MB || error_exit "Unable to mnt fuse"
+out/release/safediskd $storage_path/fuse_mnt $storage_path/data || error_exit "Unable to mnt fuse"
 
 # Kick of hdiutil
 hdiutil attach -imagekey diskimage-class=CRawDiskImage $storage_path/fuse_mnt/data

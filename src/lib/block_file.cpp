@@ -86,14 +86,6 @@ bool block_file::open(const string& _dir)
 	m_dir = _dir;
 	// Try for recovery
 	DIR *dir = opendir(m_dir.c_str());
-	if (dir == NULL && errno == ENOENT) {
-		// Nothing there, let's try making it
-		if (mkdir(m_dir.c_str(), 0777) == 0) {
-			// Worked, try opendir again
-			dir = opendir(m_dir.c_str());
-		}
-	}
-	// Open the directory for a scan
 	if (dir == NULL) {
 		syslog(LOG_ERR, "block_file::open> opendir() failed: %s", strerror(errno));
 		return false;
@@ -107,7 +99,7 @@ bool block_file::open(const string& _dir)
 		if (de->d_name[0] == '.') {
 			continue;
 		}
-		if (strcmp(de->d_name, "size") == 0) {
+		if (strcmp(de->d_name, "meta") == 0) {
 			continue;
 		}
 		if (memcmp(de->d_name, "file_", 5) != 0) {

@@ -30,11 +30,9 @@ size_MB=$2
 
 [[ $size_MB -gt 0 && $size_MB -le 1000000 ]] || error_exit "Size in MB is not in range"
 [[ -e $storage_path ]] && error_exit "Storage path already exists"
-mkdir -p $storage_path/data || error_exit "Unable to create data directory"
 mkdir -p $storage_path/fuse_mnt || error_exit "Unable to create fuse mount point"
-echo $size_MB > $storage_path/size || error_exit "Unable to create size file"
 
-out/release/safedisk $storage_path/fuse_mnt $storage_path/data $size_MB || error_exit "Unable to mnt fuse"
+out/release/safediskd $storage_path/fuse_mnt $storage_path/data $size_MB || error_exit "Unable to mnt fuse"
 hdout=`hdiutil attach -imagekey diskimage-class=CRawDiskImage -nomount $storage_path/fuse_mnt/data | awk '{print $1}'`
 if [[ $? -ne 0 ]]; then 
 	umount $storage_path/fuse_mnt

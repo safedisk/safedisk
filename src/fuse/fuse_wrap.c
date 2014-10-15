@@ -43,7 +43,8 @@ static time_t modify_time;
 static time_t access_time;
 #endif
 
-extern void* open_block_map(const char* dir, uint32_t blocks, const char* key);
+extern void* create_block_map(const char* dir, uint32_t blocks, const char* key);
+extern void* open_block_map(const char* dir, const char* key);
 extern void close_block_map(void* bm);
 extern int64_t size_block_map(void* bm);
 extern int read_block_map(void* bm, uint32_t block, char* buf);
@@ -270,37 +271,50 @@ int main(int argc, char** argv)
 {
 	openlog("safediskd", LOG_PID | LOG_PERROR, LOG_DAEMON);
 	
-	// Validate two extra arguments are there
-	if (argc < 4) {
-		fprintf(stderr, "usage: %s [fuse-options] <mnt_point> <block_dir> <size>\n", argv[0]);
+	// Validate one extra arguments are there
+	if (argc < 3) {
+		fprintf(stderr, "usage: %s [fuse-options] <mnt_point> <block_dir> [<size>]\n", argv[0]);
 		exit(1);
 	}
-	// Get size
-	uint32_t size = atoi(argv[argc-1]);
-	if (size == 0 || size > 1000000) {
-		fprintf(stderr, "Size must be non-zero and less than 1 million\n");
-		exit(1);
+	// Get size if present
+	uint32_t size = 0;
+	if (argc == 4) {
+		size = atoi(argv[--argc]);
+		if (size == 0 || size > 1000000) {
+			fprintf(stderr, "Size must be non-zero and less than 1 million\n");
+			exit(1);
+		}
 	}
-	// Check for existance of data directory and get uid
-	const char* block_dir = argv[argc-2];
-	struct stat st;
-	if (stat(block_dir, &st) != 0) {
-		fprintf(stderr, "Unable to stat data directory: %s\n", strerror(errno));
-		exit(1);
-	}
-
-	printf("mnt_point: %s\n", argv[argc-3]);
-	printf("block_dir: %s\n", argv[argc-2]);
-	printf("size: %u\n", size);
+	// Get block_dir
+	const char* block_dir = argv[--argc];
 
 	// Ask for password
 	char* pass = getpass("Password: ");
-	// Open actual block map
-	bm = open_block_map(block_dir, size*1024, pass);
+
+	if (size) {
+		// If size is set, 'create'
+		bm = create_block_map(block_dir, size*1024, pass);
+	} else {
+		// Otherwise, 'open'
+		bm = open_block_map(block_dir, pass);
+	}
 	if (bm == NULL) {
-		printf("Failed to open block_map directory\n");
+		fprintf(stderr, "Failed to %s block_map directory\n", size ? "create" : "open");
 		exit(1);
 	}
+
+	// Check for existance of data directory and get uid
+	struct stat st;
+	if (stat(block_dir, &st) != 0) {
+		fprintf(stderr, "Unable to stat data directory: %s\n", strerror(errno));
+		close_block_map(bm);
+		exit(1);
+	}
+
+	printf("mnt_point: %s\n", argv[argc-1]);
+	printf("block_dir: %s\n", block_dir);
+	printf("size: %llu\n", size_block_map(bm));
+
 	// Set global variables
 	file_size = size_block_map(bm);
 	uid = st.st_uid;
@@ -317,7 +331,7 @@ int main(int argc, char** argv)
 	access_time = time(0);
 #endif
 	// Kick off main
-	int retcode = fuse_main(argc - 2, argv, &safedisk_filesystem_operations, NULL);
+	int retcode = fuse_main(argc, argv, &safedisk_filesystem_operations, NULL);
 	close_block_map(bm);
 	return retcode;
 }
