@@ -313,7 +313,6 @@ int main(int argc, char** argv)
 
 	printf("mnt_point: %s\n", argv[argc-1]);
 	printf("block_dir: %s\n", block_dir);
-	printf("size: %lld\n", size_block_map(bm));
 
 	// Set global variables
 	file_size = size_block_map(bm);
