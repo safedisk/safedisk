@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 
 set -e
 
@@ -7,8 +7,6 @@ size_MB=$2
 name=$(basename "$storage_path" .disk)
 
 mkdir -p "$storage_path/fuse"
-mkdir -p "$storage_path/blocks"
-echo $size_MB > "$storage_path/size"
 
 ./safediskd "$storage_path/fuse" "$storage_path/blocks" $size_MB
 

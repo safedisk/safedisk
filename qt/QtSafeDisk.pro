@@ -10,7 +10,8 @@ SOURCES += \
     main.cpp \
     MainWindow.cpp \
     Disk.cpp \
-    CreateDiskDialog.cpp
+    CreateDiskDialog.cpp \
+    App.cpp
 
 RESOURCES += \
     resources.qrc
@@ -21,7 +22,8 @@ include(deployment.pri)
 HEADERS += \
     MainWindow.h \
     Disk.h \
-    CreateDiskDialog.h
+    CreateDiskDialog.h \
+    App.h
 
 FORMS += \
     CreateDisk.ui

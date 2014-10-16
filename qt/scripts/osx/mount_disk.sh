@@ -1,12 +1,11 @@
-#!/bin/bash
+#!/bin/bash +x
 
 set -e
 
 storage_path=$1
-size_MB=$(cat "$storage_path/size")
 
 mkdir -p "$storage_path/fuse"
-./safediskd "$storage_path/fuse" "$storage_path/blocks" $size_MB
+./safediskd "$storage_path/fuse" "$storage_path/blocks"
 
 on_exit1() {
     umount "$storage_path/fuse"

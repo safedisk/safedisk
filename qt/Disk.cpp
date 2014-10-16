@@ -27,13 +27,13 @@
 #include <QApplication>
 #include <QInputDialog>
 #include <QStandardPaths>
+#include <QDesktopServices>
 
 // SafeDisk system structure:
 // ${DataLocation}
 //   ${DiskName}.disk
 //     blocks
 //     fuse
-//     size
 //     volume -> /Volumes/${VolumeName}
 
 Disk::Disk(const QString& name, QWidget* parent)
@@ -70,6 +70,7 @@ bool Disk::runScript(const QString& scriptName, const QStringList& args, const Q
 
 	QProcess script;
 	script.setWorkingDirectory(appDir.absolutePath());
+	script.setProcessChannelMode(QProcess::ForwardedChannels);
 	script.start(scriptPath, args);
 	if (!script.waitForStarted()) {
 		return false;
@@ -83,10 +84,6 @@ bool Disk::runScript(const QString& scriptName, const QStringList& args, const Q
 
 	if (!script.waitForFinished()) {
 		return false;
-	}
-
-	while (!script.atEnd()) {
-		qDebug() << script.readLine();
 	}
 
 	if (!(script.exitStatus() == QProcess::NormalExit && script.exitCode() == 0)) {
@@ -295,15 +292,6 @@ void Disk::displaySettings()
 void Disk::revealFolder()
 {
 	qDebug() << "reveal" << volumePath();
-
-#if defined(Q_OS_OSX)
-	QStringList args;
-	args << volumePath();
-	QProcess::startDetached("open", args);
-#elif defined(Q_OS_WIN)
-	QStringList args;
-	args << "/select," << volumePath();
-	QProcess::startDetached("explorer", args);
-#else
-#endif
+	QString url = QString("file://%1").arg(volumePath());
+	QDesktopServices::openUrl(QUrl(url, QUrl::TolerantMode));
 }

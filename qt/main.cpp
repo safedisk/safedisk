@@ -16,17 +16,17 @@
  */
 
 #include "MainWindow.h"
+#include "App.h"
 
-#include <QApplication>
 #include <QMessageBox>
+#include <QFileOpenEvent>
 
 // TODO:
-// http://doc.qt.digia.com/qq/qq12-mac-events.html
 // Add attribution for glyphicons or replace icons with better ones
 
 int main(int argc, char *argv[])
 {
-	QApplication app(argc, argv);
+	App app(argc, argv);
 
 	if (!QSystemTrayIcon::isSystemTrayAvailable()) {
 		QMessageBox::critical(nullptr, "SafeDisk", "Could not detect the system tray on this OS.");
