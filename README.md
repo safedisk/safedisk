@@ -1,6 +1,9 @@
 SafeDisk
 ========
 
+### Status
+[![Build Status](https://travis-ci.org/safedisk/safedisk.svg)](https://travis-ci.org/safedisk/safedisk)
+
 Building on OS X
 --------
 1. `brew install openssl osxfuse qt5`
