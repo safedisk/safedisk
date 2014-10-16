@@ -18,6 +18,7 @@
 #include "Disk.h"
 
 #include <QDir>
+#include <QUrl>
 #include <QFile>
 #include <QDebug>
 #include <QProcess>
