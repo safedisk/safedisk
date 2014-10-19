@@ -18,64 +18,66 @@
 #pragma once
 
 #include <QDir>
-#include <QMenu>
-#include <QObject>
+#include <QList>
+#include <QFileInfo>
 
-class Disk : public QObject
+enum class DiskState
 {
-	Q_OBJECT
+	Invalid,
+	Missing,
+	Locked,
+	Unlocked,
+};
 
+class Disk
+{
 private:
-	explicit Disk(const QString& name, QWidget* parent);
+	explicit Disk(const QDir& dir);
 
 public:
-	QMenu* menu() const;
+	Disk() = default;
 
 	static
-	Disk* createDisk(QWidget* parent,
-					 const QString& dirName,
-					 const QString& name,
-					 const QString& password,
-					 uint64_t size);
+	Disk create(const QDir& dir,
+				const QString& name,
+				const QString& password,
+				uint64_t size);
 
 	static
-	Disk* attachDisk(QWidget* parent);
+	Disk attach(const QDir& dir);
 
 	static
-	QList<Disk*> listDisks(QWidget* parent);
-
-	static
-	QString systemPath(const QString& name);
+	QList<Disk> fetch();
 
 	static
 	bool collision(const QString& dirName, const QString& name);
 
-public slots:
-	void revealFolder();
+	QString name() const;
+	QString guid() const;
+	QString diskPath() const;
+	QString volumePath() const;
+	DiskState state() const;
 
-private slots:
-	void toggleMount();
-	void displaySettings();
+	void lock();
+	bool unlock(const QString& password);
+	bool link(const QDir& dir);
+
+	void openVolume();
 
 private:
-	void createMenu();
-	void updateState();
-	bool mount();
-	void unmount();
-	void find();
+	static
+	QDir systemRoot();
 
-	bool isValid() const;
-	bool isMounted() const;
-	QString volumePath() const;
+	static
+	QDir makeSystemDir(QString guid = "");
+
+	QFileInfo diskLink() const;
+	QFileInfo volumeLink() const;
+	QDir fuseDir() const;
 
 	static
 	bool runScript(const QString& scriptName, const QStringList& args, const QString& input);
 
 private:
-	QString m_name;
-	QWidget* m_parent;
-	QMenu* m_menu = nullptr;
-	QAction* m_toggleAction = nullptr;
-	QAction* m_revealAction = nullptr;
-	QDir m_bundleDir;
+	QDir m_dir;
 };

@@ -7,11 +7,11 @@ CONFIG += c++11
 QT += widgets
 
 SOURCES += \
-    main.cpp \
     MainWindow.cpp \
     Disk.cpp \
     CreateDiskDialog.cpp \
-    App.cpp
+    App.cpp \
+    DiskWidget.cpp
 
 RESOURCES += \
     resources.qrc
@@ -21,9 +21,9 @@ include(deployment.pri)
 
 HEADERS += \
     MainWindow.h \
-    Disk.h \
     CreateDiskDialog.h \
-    App.h
+    App.h \
+    DiskWidget.h
 
 FORMS += \
     CreateDisk.ui
@@ -45,4 +45,23 @@ macx {
     QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.6
     QMAKE_INFO_PLIST = Info.plist
     QMAKE_BUNDLE_DATA += bundle_data
+}
+
+test {
+    message(Building tests)
+
+    TARGET = unittest
+    QT += testlib
+
+    CONFIG += console
+    CONFIG -= app_bundle
+
+    SOURCES += \
+        Disk_test.cpp
+}
+else {
+    message(Building app)
+
+    SOURCES += \
+        main.cpp
 }

@@ -17,36 +17,35 @@
 
 #pragma once
 
-#include "DiskWidget.h"
+#include "Disk.h"
 
 #include <QMenu>
-#include <QList>
 #include <QAction>
-#include <QMainWindow>
-#include <QSystemTrayIcon>
+#include <QObject>
 
-class MainWindow : public QMainWindow
+class DiskWidget : public QObject
 {
 	Q_OBJECT
 public:
-	explicit MainWindow();
+	explicit DiskWidget(QWidget* parent, const Disk& disk);
 
-	void openDisk(const QString& dirName);
+	QMenu* menu() const;
+
+	static
+	QString prompt(const QString& caption);
+
+	void locate();
+	bool unlock();
+	void lock();
 
 private slots:
-	void createDisk();
-	void attachDisk();
-	void refresh();
+	void onAction();
+	void onReveal();
 
 private:
-	QAction* m_createAction = nullptr;
-	QAction* m_attachAction = nullptr;
-	QAction* m_quitAction = nullptr;
-
-	QSystemTrayIcon* m_trayIcon = nullptr;
-	QMenu* m_disksSubMenu = nullptr;
-	QMenu* m_trayIconMenu = nullptr;
-
-	QAction* m_disksSeparator = nullptr;
-	QList<DiskWidget*> m_disks;
+	QWidget* m_parent;
+	Disk m_disk;
+	QMenu* m_menu;
+	QAction* m_toggleAction;
+	QAction* m_revealAction;
 };

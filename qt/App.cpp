@@ -1,6 +1,5 @@
 #include "App.h"
 
-#include <QMessageBox>
 #include <QFileOpenEvent>
 
 App::App(int& argc, char** argv)
@@ -12,15 +11,15 @@ bool App::event(QEvent* evt)
 {
 	switch (evt->type()) {
 	case QEvent::FileOpen:
-		openDisk(static_cast<QFileOpenEvent*>(evt)->file());
+		m_mainWindow.openDisk(static_cast<QFileOpenEvent*>(evt)->file());
 		return true;
 	default:
 		return QApplication::event(evt);
 	}
 }
 
-
-void App::openDisk(const QString& filename)
+int App::run()
 {
-	QMessageBox::information(nullptr, "SafeDisk", filename);
+	m_mainWindow.show();
+	return exec();
 }

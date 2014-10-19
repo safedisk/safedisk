@@ -99,6 +99,9 @@ bool block_file::open(const string& _dir)
 		if (de->d_name[0] == '.') {
 			continue;
 		}
+		if (strcmp(de->d_name, "guid") == 0) {
+			continue;
+		}
 		if (strcmp(de->d_name, "meta") == 0) {
 			continue;
 		}

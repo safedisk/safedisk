@@ -30,7 +30,7 @@ MainWindow::MainWindow()
 	connect(m_createAction, SIGNAL(triggered()), this, SLOT(createDisk()));
 
 	m_attachAction = new QAction("Attach SafeDisk", this);
-	connect(m_attachAction, SIGNAL(triggered()), this, SLOT(restoreDisk()));
+	connect(m_attachAction, SIGNAL(triggered()), this, SLOT(attachDisk()));
 
 	m_quitAction = new QAction("&Quit", this);
 	connect(m_quitAction, SIGNAL(triggered()), QApplication::instance(), SLOT(quit()));
@@ -47,7 +47,7 @@ MainWindow::MainWindow()
 	m_trayIcon->setIcon(QIcon(":/images/glyphicons_240_rotation_lock.png"));
 	m_trayIcon->show();
 
-	connect(m_trayIconMenu, SIGNAL(aboutToShow()), this, SLOT(updateState()));
+	connect(m_trayIconMenu, SIGNAL(aboutToShow()), this, SLOT(refresh()));
 }
 
 void MainWindow::createDisk()
@@ -57,28 +57,54 @@ void MainWindow::createDisk()
 	CreateDiskDialog dialog;
 	int result = dialog.exec();
 	if (result == QDialog::Accepted) {
-		Disk* disk = Disk::createDisk(
-					this,
+		Disk disk = Disk::create(
 					dialog.storagePath(),
 					dialog.volumeName(),
 					dialog.password(),
 					dialog.size());
-		if (disk) {
-			m_trayIconMenu->insertMenu(m_disksSeparator, disk->menu());
-			m_disks.append(disk);
-			disk->revealFolder();
+		if (disk.state() == DiskState::Invalid) {
+			QMessageBox::critical(this, "SafeDisk", QString("Could not create disk: \"%1\"").arg(dialog.volumeName()));
+		}
+		else {
+			disk.openVolume();
 		}
 	}
+
+	refresh();
 }
 
-void MainWindow::restoreDisk()
+void MainWindow::attachDisk()
 {
 	raise();
-	Disk::attachDisk(this);
-	updateState();
+
+	QString dirName = DiskWidget::prompt("Attach SafeDisk");
+	if (dirName.isEmpty()) {
+		return;
+	}
+
+	openDisk(dirName);
 }
 
-void MainWindow::updateState()
+void MainWindow::openDisk(const QString& dirName)
+{
+	raise();
+
+	Disk disk = Disk::attach(QDir(dirName));
+	DiskWidget* widget = new DiskWidget(this, disk);
+
+	if (disk.state() == DiskState::Locked) {
+		widget->unlock();
+	}
+	else {
+		disk.openVolume();
+	}
+
+	delete widget;
+
+	refresh();
+}
+
+void MainWindow::refresh()
 {
 	for (auto disk : m_disks) {
 		m_trayIconMenu->removeAction(disk->menu()->menuAction());
@@ -87,8 +113,9 @@ void MainWindow::updateState()
 
 	m_disks.clear();
 
-	for (auto disk : Disk::listDisks(this)) {
-		m_trayIconMenu->insertMenu(m_disksSeparator, disk->menu());
-		m_disks.append(disk);
+	for (auto disk : Disk::fetch()) {
+		DiskWidget* widget = new DiskWidget(this, disk);
+		m_trayIconMenu->insertMenu(m_disksSeparator, widget->menu());
+		m_disks.append(widget);
 	}
 }

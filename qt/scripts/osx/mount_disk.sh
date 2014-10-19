@@ -2,24 +2,24 @@
 
 set -e
 
-storage_path=$1
+system_path=$1
 
-mkdir -p "$storage_path/fuse"
-./safediskd "$storage_path/fuse" "$storage_path/blocks"
+mkdir -p "$system_path/fuse"
+./safediskd "$system_path/fuse" "$system_path/disk"
 
 on_exit1() {
-    umount "$storage_path/fuse"
+    umount "$system_path/fuse"
 }
 
 on_exit2() {
-    touch "$storage_path/fuse/shutdown" || true
+    touch "$system_path/fuse/shutdown" || true
 }
 
 trap on_exit1 EXIT
 
-volume=$(hdiutil attach -imagekey diskimage-class=CRawDiskImage "$storage_path/fuse/data" | cut -f3-)
+volume=$(hdiutil attach -imagekey diskimage-class=CRawDiskImage "$system_path/fuse/data" | cut -f3-)
 
 trap on_exit2 EXIT
 
-rm -f "$storage_path/volume"
-ln -s "$volume" "$storage_path/volume"
+rm -f "$system_path/volume"
+ln -s "$volume" "$system_path/volume"

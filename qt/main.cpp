@@ -15,11 +15,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "MainWindow.h"
 #include "App.h"
 
 #include <QMessageBox>
-#include <QFileOpenEvent>
 
 // TODO:
 // Add attribution for glyphicons or replace icons with better ones
@@ -35,7 +33,5 @@ int main(int argc, char *argv[])
 
 	app.setQuitOnLastWindowClosed(false);
 
-	MainWindow window;
-	window.show();
-	return app.exec();
+	return app.run();
 }
