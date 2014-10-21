@@ -1,13 +1,12 @@
+language: cpp
 os:
   - linux
   - osx
-
-language: cpp
-
+compiler:
+  - gcc
 before_install: ./ci/before_install.sh
 install: ./ci/install.sh
 script: ./ci/build.sh
-
 notifications:
   email:
     - frank.laub@gmail.com
