@@ -205,7 +205,9 @@ void DiskWidget::lock()
 		loop.exit();
 	});
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 1, 0))
 	process->start();
+#endif
 
 	loop.exec();
 }

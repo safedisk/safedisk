@@ -81,7 +81,7 @@ private:
 	static
 	bool runScript(const QString& scriptName, const QStringList& args, const QString& input);
 
-	void revealFile(QWidget* parent, const QString& pathIn);
+	void revealFile(const QString& pathIn);
 
 private:
 	QDir m_dir;

@@ -192,8 +192,13 @@ QProcess* Disk::lock()
 	QStringList args;
 	args << volumePath();
 	QProcess* process = new QProcess();
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 1, 0))
 	process->setProgram(scriptPath);
 	process->setArguments(args);
+#else
+	// This is racy, but a pain to get QT 5.1+ installed with Travis
+	process->start(scriptPath, args);
+#endif
 	return process;
 }
 
@@ -238,7 +243,7 @@ void Disk::openVolume()
 
 void Disk::revealImage()
 {
-	revealFile(nullptr, diskPath());
+	revealFile(diskPath());
 }
 
 void Disk::remove(bool erase)
@@ -251,7 +256,7 @@ void Disk::remove(bool erase)
 	m_dir.removeRecursively();
 }
 
-void Disk::revealFile(QWidget* parent, const QString& pathIn)
+void Disk::revealFile(const QString& pathIn)
 {
 	QStringList args;
 	// Mac, Windows support folder or file.
@@ -264,7 +269,6 @@ void Disk::revealFile(QWidget* parent, const QString& pathIn)
 	args << param;
 	QProcess::startDetached("explorer", args);
 #elif defined(Q_OS_MAC)
-	Q_UNUSED(parent)
 	args << QLatin1String("-e")
 		 << QString::fromLatin1("tell application \"Finder\" to reveal POSIX file \"%1\"")
 			.arg(pathIn);
@@ -274,6 +278,7 @@ void Disk::revealFile(QWidget* parent, const QString& pathIn)
 		 << QLatin1String("tell application \"Finder\" to activate");
 	QProcess::execute("/usr/bin/osascript", args);
 #else
+	Q_UNUSED(pathIn)
 	// we cannot select a file here, because no file browser really supports it...
 	QMessageBox::warning(nullptr, "SafeDisk", "Reveal not supported on this system");
 	//	const QFileInfo fileInfo(pathIn);
