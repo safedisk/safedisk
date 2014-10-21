@@ -4,3 +4,5 @@
 /qt/*.pro.user
 /qt/Makefile
 /.qmake.stash
+.DS_Store
+/pkg/osx/build

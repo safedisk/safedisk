@@ -98,6 +98,18 @@ def debug():
 	build_daemon('debug', ['-g'])
 	build_qt('debug', ['CONFIG+=debug'])
 
+def package():
+	build()
+	build_dir = os.path.join(os.getcwd(), 'out', 'release', 'qt')
+	app = os.path.join(build_dir, 'SafeDisk.app')
+	run('macdeployqt', app)
+	run('freeze', 'pkg/osx/SafeDisk.packproj')
+	run('hdiutil', 'create', 'pkg/osx/build/SafeDisk.dmg', 
+		'-volname', 'SafeDisk Installer', 
+		'-fs', 'HFS+', 
+		'-srcfolder', 'pkg/osx/build/SafeDisk.mpkg'
+	)
+
 def clean():
 	autoclean()
 

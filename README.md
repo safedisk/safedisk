@@ -10,6 +10,12 @@ Building on OS X
 1. `. ./osx.env`
 1. `./build`
 
+Creating a distributable .dmg
+-------
+1. Install [Iceberg](http://s.sudre.free.fr/Software/Iceberg.html)
+1. `./build package`
+
+
 Make a 100 MB SafeDisk
 -----------------
 `./scripts/macosx/make_safedisk ~/Documents/SafeDisk.disk 100`
