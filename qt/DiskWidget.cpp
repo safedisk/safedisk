@@ -18,17 +18,21 @@
 #include "DiskWidget.h"
 
 #include <QDebug>
+#include <QProcess>
+#include <QEventLoop>
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QInputDialog>
+#include <QProgressBar>
 #include <QStandardPaths>
+#include <QProgressDialog>
 
 QString DiskWidget::prompt(const QString& caption)
 {
 	QStringList paths = QStandardPaths::standardLocations(QStandardPaths::DesktopLocation);
 	QFileDialog dialog(nullptr, caption);
-//	dialog.setFileMode(QFileDialog::Directory);
-//	dialog.setOption(QFileDialog::ShowDirsOnly);
+	//	dialog.setFileMode(QFileDialog::Directory);
+	//	dialog.setOption(QFileDialog::ShowDirsOnly);
 	dialog.setFileMode(QFileDialog::ExistingFile);
 	dialog.setNameFilter("*.disk");
 	dialog.setDirectory(paths[0]);
@@ -45,8 +49,12 @@ DiskWidget::DiskWidget(QWidget* parent, const Disk& disk)
 	, m_disk(disk)
 	, m_menu(new QMenu(disk.name(), parent))
 {
-	m_toggleAction = m_menu->addAction("", this, SLOT(onAction()));
-	m_revealAction = m_menu->addAction("Reveal Folder", this, SLOT(onReveal()));
+	m_toggleAction = m_menu->addAction("", this, SLOT(onToggle()));
+	m_openAction = m_menu->addAction("Open Volume", this, SLOT(onOpen()));
+#if defined(Q_OS_WIN) || defined(Q_OS_MAC)
+	m_revealAction = m_menu->addAction("Reveal Image", this, SLOT(onReveal()));
+#endif
+	m_removeAction = m_menu->addAction("Remove", this, SLOT(onRemove()));
 
 	switch (m_disk.state()) {
 	case DiskState::Invalid:
@@ -55,17 +63,29 @@ DiskWidget::DiskWidget(QWidget* parent, const Disk& disk)
 	case DiskState::Missing:
 		m_menu->setIcon(QIcon(":/images/glyphicons_199_ban.png"));
 		m_toggleAction->setText("Locate");
+		m_openAction->setEnabled(false);
+#if defined(Q_OS_WIN) || defined(Q_OS_MAC)
 		m_revealAction->setEnabled(false);
+#endif
+		m_removeAction->setEnabled(false);
 		break;
 	case DiskState::Locked:
 		m_menu->setIcon(QIcon(":/images/glyphicons_203_lock.png"));
 		m_toggleAction->setText("Unlock");
+		m_openAction->setEnabled(false);
+#if defined(Q_OS_WIN) || defined(Q_OS_MAC)
 		m_revealAction->setEnabled(false);
+#endif
+		m_removeAction->setEnabled(false);
 		break;
 	case DiskState::Unlocked:
 		m_menu->setIcon(QIcon(":/images/glyphicons_204_unlock.png"));
+		m_openAction->setEnabled(true);
 		m_toggleAction->setText("Lock");
+#if defined(Q_OS_WIN) || defined(Q_OS_MAC)
 		m_revealAction->setEnabled(true);
+#endif
+		m_removeAction->setEnabled(true);
 		break;
 	}
 }
@@ -75,7 +95,7 @@ QMenu* DiskWidget::menu() const
 	return m_menu;
 }
 
-void DiskWidget::onAction()
+void DiskWidget::onToggle()
 {
 	m_parent->raise();
 
@@ -95,10 +115,34 @@ void DiskWidget::onAction()
 	}
 }
 
-void DiskWidget::onReveal()
+void DiskWidget::onOpen()
 {
 	m_parent->raise();
 	m_disk.openVolume();
+}
+
+void DiskWidget::onReveal()
+{
+	m_parent->raise();
+	m_disk.revealImage();
+}
+
+void DiskWidget::onRemove()
+{
+	m_parent->raise();
+
+	QMessageBox::StandardButton button = QMessageBox::question(
+				nullptr,
+				"Remove SafeDisk",
+				"Permanently erase all data?",
+				QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+	if (button == QMessageBox::Cancel) {
+		return;
+	}
+
+	lock();
+
+	m_disk.remove(button == QMessageBox::Yes);
 }
 
 void DiskWidget::locate()
@@ -138,5 +182,30 @@ bool DiskWidget::unlock()
 
 void DiskWidget::lock()
 {
-	m_disk.lock();
+	QEventLoop loop;
+
+	QProgressDialog progress("Locking SafeDisk...", "Cancel", 0, 100);
+	progress.setWindowModality(Qt::WindowModal);
+	progress.setMinimumDuration(500);
+	progress.setValue(0);
+	QProgressBar bar;
+	bar.setRange(0, 0);
+	progress.setBar(&bar);
+
+	std::unique_ptr<QProcess> process(m_disk.lock());
+
+	connect(&progress, &QProgressDialog::canceled, [&] () {
+		process->terminate();
+	});
+
+	connect(process.get(),
+			static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+			[&] (int exitCode, QProcess::ExitStatus exitStatus) {
+		qDebug() << "onEjectFinished> exitCode:" << exitCode << "exitStatus:" << exitStatus;
+		loop.exit();
+	});
+
+	process->start();
+
+	loop.exec();
 }

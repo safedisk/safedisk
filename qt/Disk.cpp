@@ -20,8 +20,8 @@
 #include <QUrl>
 #include <QUuid>
 #include <QDebug>
-#include <QProcess>
 #include <QMultiMap>
+#include <QMessageBox>
 #include <QApplication>
 #include <QStandardPaths>
 #include <QDesktopServices>
@@ -185,13 +185,16 @@ bool Disk::unlock(const QString& password)
 	return true;
 }
 
-void Disk::lock()
+QProcess* Disk::lock()
 {
 	QDir appDir(QApplication::applicationDirPath());
 	QString scriptPath = appDir.filePath("unmount_disk.sh");
 	QStringList args;
 	args << volumePath();
-	QProcess::startDetached(scriptPath, args);
+	QProcess* process = new QProcess();
+	process->setProgram(scriptPath);
+	process->setArguments(args);
+	return process;
 }
 
 bool Disk::runScript(const QString& scriptName, const QStringList& args, const QString& input)
@@ -231,4 +234,59 @@ void Disk::openVolume()
 {
 	QString url = QString("file://%1").arg(volumePath());
 	QDesktopServices::openUrl(QUrl(url, QUrl::TolerantMode));
+}
+
+void Disk::revealImage()
+{
+	revealFile(nullptr, diskPath());
+}
+
+void Disk::remove(bool erase)
+{
+	if (erase) {
+		QDir diskDir(diskPath());
+		diskDir.removeRecursively();
+	}
+
+	m_dir.removeRecursively();
+}
+
+void Disk::revealFile(QWidget* parent, const QString& pathIn)
+{
+	QStringList args;
+	// Mac, Windows support folder or file.
+#if defined(Q_OS_WIN)
+	QString param;
+	if (!QFileInfo(pathIn).isDir()) {
+		param = QLatin1String("/select,");
+	}
+	param += QDir::toNativeSeparators(pathIn);
+	args << param;
+	QProcess::startDetached("explorer", args);
+#elif defined(Q_OS_MAC)
+	Q_UNUSED(parent)
+	args << QLatin1String("-e")
+		 << QString::fromLatin1("tell application \"Finder\" to reveal POSIX file \"%1\"")
+			.arg(pathIn);
+	QProcess::execute(QLatin1String("/usr/bin/osascript"), args);
+	args.clear();
+	args << QLatin1String("-e")
+		 << QLatin1String("tell application \"Finder\" to activate");
+	QProcess::execute("/usr/bin/osascript", args);
+#else
+	// we cannot select a file here, because no file browser really supports it...
+	QMessageBox::warning(nullptr, "SafeDisk", "Reveal not supported on this system");
+	//	const QFileInfo fileInfo(pathIn);
+	//	const QString folder = fileInfo.absoluteFilePath();
+	//	const QString app = Utils::UnixUtils::fileBrowser(Core::ICore::instance()->settings());
+	//	QProcess browser;
+	//	const QString browserArgs = Utils::UnixUtils::substituteFileBrowserParameters(app, folder);
+	//	qDebug() << browserArgs;
+	//	bool success = browserProc.startDetached(browserArgs);
+	//	const QString error = QString::fromLocal8Bit(browserProc.readAllStandardError());
+	//	success = success && error.isEmpty();
+	//	if (!success) {
+	//		QMessageBox::warning(nullptr, "SafeDisk", "Reveal not supported on this system");
+	//	}
+#endif
 }

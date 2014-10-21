@@ -19,6 +19,7 @@
 
 #include <QDir>
 #include <QList>
+#include <QProcess>
 #include <QFileInfo>
 
 enum class DiskState
@@ -58,11 +59,13 @@ public:
 	QString volumePath() const;
 	DiskState state() const;
 
-	void lock();
+	QProcess* lock();
 	bool unlock(const QString& password);
 	bool link(const QDir& dir);
 
 	void openVolume();
+	void revealImage();
+	void remove(bool erase);
 
 private:
 	static
@@ -77,6 +80,8 @@ private:
 
 	static
 	bool runScript(const QString& scriptName, const QStringList& args, const QString& input);
+
+	void revealFile(QWidget* parent, const QString& pathIn);
 
 private:
 	QDir m_dir;

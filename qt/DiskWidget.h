@@ -39,13 +39,19 @@ public:
 	void lock();
 
 private slots:
-	void onAction();
+	void onToggle();
+	void onOpen();
 	void onReveal();
+	void onRemove();
 
 private:
 	QWidget* m_parent;
 	Disk m_disk;
 	QMenu* m_menu;
 	QAction* m_toggleAction;
+	QAction* m_openAction;
+#if defined(Q_OS_WIN) || defined(Q_OS_MAC)
 	QAction* m_revealAction;
+#endif
+	QAction* m_removeAction;
 };

@@ -26,10 +26,10 @@ MainWindow::MainWindow()
 	setWindowFlags(windowType() | Qt::FramelessWindowHint);
 	resize(0, 0);
 
-	m_createAction = new QAction("Create SafeDisk", this);
+	m_createAction = new QAction("Create...", this);
 	connect(m_createAction, SIGNAL(triggered()), this, SLOT(createDisk()));
 
-	m_attachAction = new QAction("Attach SafeDisk", this);
+	m_attachAction = new QAction("Attach...", this);
 	connect(m_attachAction, SIGNAL(triggered()), this, SLOT(attachDisk()));
 
 	m_quitAction = new QAction("&Quit", this);
