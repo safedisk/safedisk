@@ -20,4 +20,4 @@ set -e
 
 OS=${TRAVIS_OS_NAME:=linux}
 
-before_install.${OS}.sh
+ci/before_install.${OS}.sh

@@ -20,4 +20,4 @@ set -e
 
 OS=${TRAVIS_OS_NAME:=linux}
 
-build.${OS}.sh
+ci/build.${OS}.sh
