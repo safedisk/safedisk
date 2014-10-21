@@ -19,6 +19,7 @@
 
 #include <QDir>
 #include <QList>
+#include <QObject>
 #include <QProcess>
 #include <QFileInfo>
 
@@ -30,25 +31,24 @@ enum class DiskState
 	Unlocked,
 };
 
-class Disk
+class Disk : public QObject
 {
+	Q_OBJECT
 private:
 	explicit Disk(const QDir& dir);
 
 public:
-	Disk() = default;
-
 	static
-	Disk create(const QDir& dir,
+	Disk* create(const QDir& dir,
 				const QString& name,
 				const QString& password,
 				uint64_t size);
 
 	static
-	Disk attach(const QDir& dir);
+	Disk* attach(const QDir& dir);
 
 	static
-	QList<Disk> fetch();
+	QList<Disk*> fetch();
 
 	static
 	bool collision(const QString& dirName, const QString& name);
@@ -59,13 +59,18 @@ public:
 	QString volumePath() const;
 	DiskState state() const;
 
-	QProcess* lock();
+	void lock();
 	bool unlock(const QString& password);
 	bool link(const QDir& dir);
 
 	void openVolume();
 	void revealImage();
 	void remove(bool erase);
+
+	void cancel();
+
+signals:
+	void locked();
 
 private:
 	static
@@ -85,4 +90,5 @@ private:
 
 private:
 	QDir m_dir;
+	QProcess* m_pendingProcess = nullptr;
 };

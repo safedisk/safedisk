@@ -27,7 +27,7 @@ class DiskWidget : public QObject
 {
 	Q_OBJECT
 public:
-	explicit DiskWidget(QWidget* parent, const Disk& disk);
+	explicit DiskWidget(QWidget* parent, Disk* disk);
 
 	QMenu* menu() const;
 
@@ -46,7 +46,7 @@ private slots:
 
 private:
 	QWidget* m_parent;
-	Disk m_disk;
+	Disk* m_disk;
 	QMenu* m_menu;
 	QAction* m_toggleAction;
 	QAction* m_openAction;

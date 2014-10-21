@@ -43,12 +43,13 @@ QString DiskWidget::prompt(const QString& caption)
 	return dialog.selectedFiles().first();
 }
 
-DiskWidget::DiskWidget(QWidget* parent, const Disk& disk)
+DiskWidget::DiskWidget(QWidget* parent, Disk* disk)
 	: QObject(parent)
 	, m_parent(parent)
 	, m_disk(disk)
-	, m_menu(new QMenu(disk.name(), parent))
+	, m_menu(new QMenu(disk->name(), parent))
 {
+	m_disk->setParent(this);
 	m_toggleAction = m_menu->addAction("", this, SLOT(onToggle()));
 	m_openAction = m_menu->addAction("Open Volume", this, SLOT(onOpen()));
 #if defined(Q_OS_WIN) || defined(Q_OS_MAC)
@@ -56,7 +57,7 @@ DiskWidget::DiskWidget(QWidget* parent, const Disk& disk)
 #endif
 	m_removeAction = m_menu->addAction("Remove", this, SLOT(onRemove()));
 
-	switch (m_disk.state()) {
+	switch (m_disk->state()) {
 	case DiskState::Invalid:
 		qFatal("Invalid DiskState");
 		break;
@@ -99,7 +100,7 @@ void DiskWidget::onToggle()
 {
 	m_parent->raise();
 
-	switch (m_disk.state()) {
+	switch (m_disk->state()) {
 	case DiskState::Invalid:
 		qFatal("Invalid DiskState");
 		break;
@@ -118,13 +119,13 @@ void DiskWidget::onToggle()
 void DiskWidget::onOpen()
 {
 	m_parent->raise();
-	m_disk.openVolume();
+	m_disk->openVolume();
 }
 
 void DiskWidget::onReveal()
 {
 	m_parent->raise();
-	m_disk.revealImage();
+	m_disk->revealImage();
 }
 
 void DiskWidget::onRemove()
@@ -142,7 +143,7 @@ void DiskWidget::onRemove()
 
 	lock();
 
-	m_disk.remove(button == QMessageBox::Yes);
+	m_disk->remove(button == QMessageBox::Yes);
 }
 
 void DiskWidget::locate()
@@ -152,31 +153,31 @@ void DiskWidget::locate()
 		return;
 	}
 
-	if (!m_disk.link(QDir(dirName))) {
-		QMessageBox::critical(m_parent, "SafeDisk", QString("Located disk does not match: \"%1\"").arg(m_disk.name()));
+	if (!m_disk->link(QDir(dirName))) {
+		QMessageBox::critical(m_parent, "SafeDisk", QString("Located disk does not match: \"%1\"").arg(m_disk->name()));
 		return;
 	}
 
-	if (m_disk.state() == DiskState::Locked) {
+	if (m_disk->state() == DiskState::Locked) {
 		unlock();
 	}
 }
 
 bool DiskWidget::unlock()
 {
-	QString title = QString("Unlock \"%1\"").arg(m_disk.name());
+	QString title = QString("Unlock \"%1\"").arg(m_disk->name());
 	bool ok;
 	QString password = QInputDialog::getText(m_parent, title, "Password:", QLineEdit::Password, "", &ok);
 	if (!ok || password.isEmpty()) {
 		return false;
 	}
 
-	if (!m_disk.unlock(password)) {
-		QMessageBox::critical(m_parent, "SafeDisk", QString("Could not unlock disk: \"%1\"").arg(m_disk.name()));
+	if (!m_disk->unlock(password)) {
+		QMessageBox::critical(m_parent, "SafeDisk", QString("Could not unlock disk: \"%1\"").arg(m_disk->name()));
 		return false;
 	}
 
-	m_disk.openVolume();
+	m_disk->openVolume();
 	return true;
 }
 
@@ -192,22 +193,17 @@ void DiskWidget::lock()
 	bar.setRange(0, 0);
 	progress.setBar(&bar);
 
-	std::unique_ptr<QProcess> process(m_disk.lock());
-
 	connect(&progress, &QProgressDialog::canceled, [&] () {
-		process->terminate();
+		m_disk->cancel();
 	});
 
-	connect(process.get(),
-			static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-			[&] (int exitCode, QProcess::ExitStatus exitStatus) {
-		qDebug() << "onEjectFinished> exitCode:" << exitCode << "exitStatus:" << exitStatus;
+	auto connection = connect(m_disk, &Disk::locked, [&] () {
 		loop.exit();
 	});
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 1, 0))
-	process->start();
-#endif
+	m_disk->lock();
 
 	loop.exec();
+
+	disconnect(connection);
 }

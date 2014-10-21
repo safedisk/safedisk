@@ -21,6 +21,7 @@ include(deployment.pri)
 
 HEADERS += \
     MainWindow.h \
+    Disk.h \
     CreateDiskDialog.h \
     App.h \
     DiskWidget.h

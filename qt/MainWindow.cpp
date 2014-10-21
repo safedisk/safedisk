@@ -57,16 +57,16 @@ void MainWindow::createDisk()
 	CreateDiskDialog dialog;
 	int result = dialog.exec();
 	if (result == QDialog::Accepted) {
-		Disk disk = Disk::create(
+		Disk* disk = Disk::create(
 					dialog.storagePath(),
 					dialog.volumeName(),
 					dialog.password(),
 					dialog.size());
-		if (disk.state() == DiskState::Invalid) {
+		if (disk->state() == DiskState::Invalid) {
 			QMessageBox::critical(this, "SafeDisk", QString("Could not create disk: \"%1\"").arg(dialog.volumeName()));
 		}
 		else {
-			disk.openVolume();
+			disk->openVolume();
 		}
 	}
 
@@ -89,17 +89,15 @@ void MainWindow::openDisk(const QString& dirName)
 {
 	raise();
 
-	Disk disk = Disk::attach(QDir(dirName));
-	DiskWidget* widget = new DiskWidget(this, disk);
+	Disk* disk = Disk::attach(QDir(dirName));
+	DiskWidget widget(this, disk);
 
-	if (disk.state() == DiskState::Locked) {
-		widget->unlock();
+	if (disk->state() == DiskState::Locked) {
+		widget.unlock();
 	}
 	else {
-		disk.openVolume();
+		disk->openVolume();
 	}
-
-	delete widget;
 
 	refresh();
 }

@@ -121,19 +121,19 @@ bool Disk::collision(const QString& dirName, const QString& name)
 	return storageDir.exists();
 }
 
-QList<Disk> Disk::fetch()
+QList<Disk*> Disk::fetch()
 {
-	QMultiMap<QString, Disk> temp;
+	QMultiMap<QString, Disk*> temp;
 	QStringList filters;
 	QFileInfoList disks = systemRoot().entryInfoList(filters, QDir::Dirs | QDir::NoDotAndDotDot);
 	for (auto it = disks.cbegin(); it != disks.cend(); it++) {
-		Disk disk(it->absoluteFilePath());
-		temp.insert(disk.name(), disk);
+		Disk* disk = new Disk(it->absoluteFilePath());
+		temp.insert(disk->name(), disk);
 	}
 	return temp.values();
 }
 
-Disk Disk::create(
+Disk* Disk::create(
 		const QDir& dir,
 		const QString& name,
 		const QString& password,
@@ -152,14 +152,14 @@ Disk Disk::create(
 		storageDir.removeRecursively();
 	}
 
-	return Disk(systemDir);
+	return new Disk(systemDir);
 }
 
-Disk Disk::attach(const QDir& dir)
+Disk* Disk::attach(const QDir& dir)
 {
 	QString guid = readGuid(dir);
-	Disk disk(makeSystemDir(guid));
-	disk.link(dir);
+	Disk* disk = new Disk(makeSystemDir(guid));
+	disk->link(dir);
 	return disk;
 }
 
@@ -185,21 +185,36 @@ bool Disk::unlock(const QString& password)
 	return true;
 }
 
-QProcess* Disk::lock()
+void Disk::lock()
 {
+	if (m_pendingProcess) {
+		return;
+	}
+
 	QDir appDir(QApplication::applicationDirPath());
 	QString scriptPath = appDir.filePath("unmount_disk.sh");
 	QStringList args;
 	args << volumePath();
-	QProcess* process = new QProcess();
-#if (QT_VERSION >= QT_VERSION_CHECK(5, 1, 0))
-	process->setProgram(scriptPath);
-	process->setArguments(args);
-#else
-	// This is racy, but a pain to get QT 5.1+ installed with Travis
-	process->start(scriptPath, args);
-#endif
-	return process;
+
+	m_pendingProcess = new QProcess(this);
+
+	connect(m_pendingProcess,
+			static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+			[&] (int exitCode, QProcess::ExitStatus exitStatus) {
+		qDebug() << "unmount_disk.sh> exitCode:" << exitCode << "exitStatus:" << exitStatus;
+		m_pendingProcess->deleteLater();
+		m_pendingProcess = nullptr;
+		emit locked();
+	});
+
+	m_pendingProcess->start(scriptPath, args);
+}
+
+void Disk::cancel()
+{
+	if (m_pendingProcess) {
+		m_pendingProcess->terminate();
+	}
 }
 
 bool Disk::runScript(const QString& scriptName, const QStringList& args, const QString& input)
