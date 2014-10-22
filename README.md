@@ -16,7 +16,7 @@ Creating a distributable .dmg
 1. `. ./osx.env`
 1. `./build package`
 
-The result is at pkg/osx/build/SafeDisk.dmg
+The result is at `pkg/osx/build/SafeDisk.dmg`
 
 
 Make a 100 MB SafeDisk
