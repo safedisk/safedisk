@@ -19,9 +19,6 @@
 
 #include <QMessageBox>
 
-// TODO:
-// Add attribution for glyphicons or replace icons with better ones
-
 int main(int argc, char *argv[])
 {
 	App app(argc, argv);

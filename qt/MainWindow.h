@@ -34,18 +34,21 @@ public:
 	void openDisk(const QString& dirName);
 
 private slots:
-	void createDisk();
-	void attachDisk();
+	void onAbout();
+	void onCreate();
+	void onAttach();
 	void refresh();
 
 private:
-	QAction* m_createAction = nullptr;
-	QAction* m_attachAction = nullptr;
-	QAction* m_quitAction = nullptr;
+	QAction m_aboutAction;
+	QAction m_aboutQtAction;
+	QAction m_createAction;
+	QAction m_attachAction;
+	QAction m_quitAction;
 
-	QSystemTrayIcon* m_trayIcon = nullptr;
-	QMenu* m_disksSubMenu = nullptr;
-	QMenu* m_trayIconMenu = nullptr;
+	QMenu m_trayIconMenu;
+	QMenu m_disksSubMenu;
+	QSystemTrayIcon m_trayIcon;
 
 	QAction* m_disksSeparator = nullptr;
 	QList<DiskWidget*> m_disks;

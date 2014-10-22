@@ -27,7 +27,8 @@ HEADERS += \
     DiskWidget.h
 
 FORMS += \
-    CreateDisk.ui
+    CreateDisk.ui \
+    About.ui
 
 macx {
     OTHER_FILES += \

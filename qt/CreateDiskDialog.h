@@ -23,7 +23,7 @@ class CreateDiskDialog : public QDialog, private Ui::CreateDisk
 {
 	Q_OBJECT
 public:
-	explicit CreateDiskDialog(QWidget* parent = nullptr);
+	explicit CreateDiskDialog(QWidget* parent);
 
 	QString storagePath() const;
 	QString volumeName() const;

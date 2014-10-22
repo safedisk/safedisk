@@ -16,45 +16,59 @@
  */
 
 #include "MainWindow.h"
+#include "ui_About.h"
 #include "CreateDiskDialog.h"
 
 #include <QMessageBox>
 #include <QApplication>
 
 MainWindow::MainWindow()
+	: m_aboutAction("About SafeDisk", this)
+	, m_aboutQtAction("About Qt", this)
+	, m_createAction("Create...", this)
+	, m_attachAction("Attach...", this)
+	, m_quitAction("Quit", this)
+	, m_trayIconMenu(this)
+	, m_trayIcon(this)
 {
 	setWindowFlags(windowType() | Qt::FramelessWindowHint);
 	resize(0, 0);
 
-	m_createAction = new QAction("Create...", this);
-	connect(m_createAction, SIGNAL(triggered()), this, SLOT(createDisk()));
+	connect(&m_aboutAction, SIGNAL(triggered()), this, SLOT(onAbout()));
+	connect(&m_aboutQtAction, SIGNAL(triggered()), QApplication::instance(), SLOT(aboutQt()));
+	connect(&m_createAction, SIGNAL(triggered()), this, SLOT(onCreate()));
+	connect(&m_attachAction, SIGNAL(triggered()), this, SLOT(onAttach()));
+	connect(&m_quitAction, SIGNAL(triggered()), QApplication::instance(), SLOT(quit()));
 
-	m_attachAction = new QAction("Attach...", this);
-	connect(m_attachAction, SIGNAL(triggered()), this, SLOT(attachDisk()));
+	m_trayIconMenu.addAction(&m_aboutAction);
+	m_trayIconMenu.addAction(&m_aboutQtAction);
+	m_trayIconMenu.addSeparator();
+	m_trayIconMenu.addAction(&m_createAction);
+	m_trayIconMenu.addAction(&m_attachAction);
+	m_trayIconMenu.addSeparator();
+	m_disksSeparator = m_trayIconMenu.addSeparator();
+	m_trayIconMenu.addAction(&m_quitAction);
 
-	m_quitAction = new QAction("&Quit", this);
-	connect(m_quitAction, SIGNAL(triggered()), QApplication::instance(), SLOT(quit()));
+	m_trayIcon.setContextMenu(&m_trayIconMenu);
+	m_trayIcon.setIcon(QIcon(":/app"));
+	m_trayIcon.show();
 
-	m_trayIconMenu = new QMenu(this);
-	m_trayIconMenu->addAction(m_createAction);
-	m_trayIconMenu->addAction(m_attachAction);
-	m_trayIconMenu->addSeparator();
-	m_disksSeparator = m_trayIconMenu->addSeparator();
-	m_trayIconMenu->addAction(m_quitAction);
-
-	m_trayIcon = new QSystemTrayIcon(this);
-	m_trayIcon->setContextMenu(m_trayIconMenu);
-	m_trayIcon->setIcon(QIcon(":/images/glyphicons_240_rotation_lock.png"));
-	m_trayIcon->show();
-
-	connect(m_trayIconMenu, SIGNAL(aboutToShow()), this, SLOT(refresh()));
+	connect(&m_trayIconMenu, SIGNAL(aboutToShow()), this, SLOT(refresh()));
 }
 
-void MainWindow::createDisk()
+void MainWindow::onAbout()
+{
+	QDialog dialog(this);
+	Ui::AboutDialog ui;
+	ui.setupUi(&dialog);
+	dialog.exec();
+}
+
+void MainWindow::onCreate()
 {
 	raise();
 
-	CreateDiskDialog dialog;
+	CreateDiskDialog dialog(this);
 	int result = dialog.exec();
 	if (result == QDialog::Accepted) {
 		Disk* disk = Disk::create(
@@ -73,7 +87,7 @@ void MainWindow::createDisk()
 	refresh();
 }
 
-void MainWindow::attachDisk()
+void MainWindow::onAttach()
 {
 	raise();
 
@@ -105,7 +119,7 @@ void MainWindow::openDisk(const QString& dirName)
 void MainWindow::refresh()
 {
 	for (auto disk : m_disks) {
-		m_trayIconMenu->removeAction(disk->menu()->menuAction());
+		m_trayIconMenu.removeAction(disk->menu()->menuAction());
 		delete disk;
 	}
 
@@ -113,7 +127,7 @@ void MainWindow::refresh()
 
 	for (auto disk : Disk::fetch()) {
 		DiskWidget* widget = new DiskWidget(this, disk);
-		m_trayIconMenu->insertMenu(m_disksSeparator, widget->menu());
+		m_trayIconMenu.insertMenu(m_disksSeparator, widget->menu());
 		m_disks.append(widget);
 	}
 }

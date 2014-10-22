@@ -62,7 +62,7 @@ DiskWidget::DiskWidget(QWidget* parent, Disk* disk)
 		qFatal("Invalid DiskState");
 		break;
 	case DiskState::Missing:
-		m_menu->setIcon(QIcon(":/images/glyphicons_199_ban.png"));
+		m_menu->setIcon(QIcon(":/ban"));
 		m_toggleAction->setText("Locate");
 		m_openAction->setEnabled(false);
 #if defined(Q_OS_WIN) || defined(Q_OS_MAC)
@@ -70,7 +70,7 @@ DiskWidget::DiskWidget(QWidget* parent, Disk* disk)
 #endif
 		break;
 	case DiskState::Locked:
-		m_menu->setIcon(QIcon(":/images/glyphicons_203_lock.png"));
+		m_menu->setIcon(QIcon(":/locked"));
 		m_toggleAction->setText("Unlock");
 		m_openAction->setEnabled(false);
 #if defined(Q_OS_WIN) || defined(Q_OS_MAC)
@@ -78,7 +78,7 @@ DiskWidget::DiskWidget(QWidget* parent, Disk* disk)
 #endif
 		break;
 	case DiskState::Unlocked:
-		m_menu->setIcon(QIcon(":/images/glyphicons_204_unlock.png"));
+		m_menu->setIcon(QIcon(":/unlocked"));
 		m_openAction->setEnabled(true);
 		m_toggleAction->setText("Lock");
 #if defined(Q_OS_WIN) || defined(Q_OS_MAC)
