@@ -200,8 +200,8 @@ void Disk::lock()
 
 	connect(m_pendingProcess,
 			static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-			[&] (int exitCode, QProcess::ExitStatus exitStatus) {
-		qDebug() << "unmount_disk.sh> exitCode:" << exitCode << "exitStatus:" << exitStatus;
+			[this] (int exitCode, QProcess::ExitStatus exitStatus) {
+		qDebug() << "unmount_disk.sh>" << volumePath() << "exitCode:" << exitCode << "exitStatus:" << exitStatus;
 		m_pendingProcess->deleteLater();
 		m_pendingProcess = nullptr;
 		emit locked();

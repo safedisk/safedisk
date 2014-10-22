@@ -68,7 +68,6 @@ DiskWidget::DiskWidget(QWidget* parent, Disk* disk)
 #if defined(Q_OS_WIN) || defined(Q_OS_MAC)
 		m_revealAction->setEnabled(false);
 #endif
-		m_removeAction->setEnabled(false);
 		break;
 	case DiskState::Locked:
 		m_menu->setIcon(QIcon(":/images/glyphicons_203_lock.png"));
@@ -77,7 +76,6 @@ DiskWidget::DiskWidget(QWidget* parent, Disk* disk)
 #if defined(Q_OS_WIN) || defined(Q_OS_MAC)
 		m_revealAction->setEnabled(false);
 #endif
-		m_removeAction->setEnabled(false);
 		break;
 	case DiskState::Unlocked:
 		m_menu->setIcon(QIcon(":/images/glyphicons_204_unlock.png"));
@@ -86,7 +84,6 @@ DiskWidget::DiskWidget(QWidget* parent, Disk* disk)
 #if defined(Q_OS_WIN) || defined(Q_OS_MAC)
 		m_revealAction->setEnabled(true);
 #endif
-		m_removeAction->setEnabled(true);
 		break;
 	}
 }
@@ -132,13 +129,16 @@ void DiskWidget::onRemove()
 {
 	m_parent->raise();
 
-	QMessageBox::StandardButton button = QMessageBox::question(
-				nullptr,
-				"Remove SafeDisk",
-				"Permanently erase all data?",
-				QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
-	if (button == QMessageBox::Cancel) {
-		return;
+	QMessageBox::StandardButton button = QMessageBox::No;
+	if (m_disk->state() != DiskState::Missing) {
+		button = QMessageBox::question(
+					nullptr,
+					"Remove SafeDisk",
+					"Permanently erase all data?",
+					QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+		if (button == QMessageBox::Cancel) {
+			return;
+		}
 	}
 
 	lock();
@@ -193,11 +193,11 @@ void DiskWidget::lock()
 	bar.setRange(0, 0);
 	progress.setBar(&bar);
 
-	connect(&progress, &QProgressDialog::canceled, [&] () {
+	connect(&progress, &QProgressDialog::canceled, [this] () {
 		m_disk->cancel();
 	});
 
-	auto connection = connect(m_disk, &Disk::locked, [&] () {
+	auto connection = connect(m_disk, &Disk::locked, [&loop] () {
 		loop.exit();
 	});
 
