@@ -11,7 +11,8 @@ SOURCES += \
     Disk.cpp \
     CreateDiskDialog.cpp \
     App.cpp \
-    DiskWidget.cpp
+    DiskWidget.cpp \
+    Script.cpp
 
 RESOURCES += \
     resources.qrc
@@ -24,7 +25,8 @@ HEADERS += \
     Disk.h \
     CreateDiskDialog.h \
     App.h \
-    DiskWidget.h
+    DiskWidget.h \
+    Script.h
 
 FORMS += \
     CreateDisk.ui \

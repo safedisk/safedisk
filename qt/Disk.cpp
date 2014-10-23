@@ -22,6 +22,7 @@
 #include <QDebug>
 #include <QMultiMap>
 #include <QMessageBox>
+#include <QTextStream>
 #include <QApplication>
 #include <QStandardPaths>
 #include <QDesktopServices>
@@ -41,13 +42,20 @@ static
 QString readGuid(const QDir& dir)
 {
 	QFile file(dir.filePath("guid"));
-	file.open(QFile::ReadOnly);
+	if (!file.open(QFile::ReadOnly)) {
+		return "";
+	}
 	return QString(file.readAll()).trimmed();
 }
 
 Disk::Disk(const QDir& dir)
-	: m_dir(dir)
+	: m_dir(new QDir(dir))
 {
+}
+
+Disk::~Disk()
+{
+	delete m_dir;
 }
 
 QDir Disk::systemRoot()
@@ -68,17 +76,26 @@ QDir Disk::makeSystemDir(QString guid)
 
 QFileInfo Disk::diskLink() const
 {
-	return QFileInfo(m_dir.filePath("disk"));
+	if (!m_dir) {
+		return QFileInfo();
+	}
+	return QFileInfo(m_dir->filePath("disk"));
 }
 
 QFileInfo Disk::volumeLink() const
 {
-	return QFileInfo(m_dir.filePath("volume"));
+	if (!m_dir) {
+		return QFileInfo();
+	}
+	return QFileInfo(m_dir->filePath("volume"));
 }
 
 QDir Disk::fuseDir() const
 {
-	return QDir(m_dir.filePath("fuse"));
+	if (!m_dir) {
+		return QDir();
+	}
+	return QDir(m_dir->filePath("fuse"));
 }
 
 QString Disk::diskPath() const
@@ -98,12 +115,12 @@ QString Disk::name() const
 
 QString Disk::guid() const
 {
-	return QFileInfo(m_dir.absolutePath()).baseName();
+	return QFileInfo(m_dir->absolutePath()).baseName();
 }
 
 DiskState Disk::state() const
 {
-	if (!m_dir.exists()) {
+	if (!m_dir) {
 		return DiskState::Invalid;
 	}
 	if (!diskLink().exists()) {
@@ -133,61 +150,106 @@ QList<Disk*> Disk::fetch()
 	return temp.values();
 }
 
-Disk* Disk::create(
+void Disk::create(
 		const QDir& dir,
 		const QString& name,
 		const QString& password,
 		uint64_t size)
 {
+	m_dir = new QDir(makeSystemDir());
 	QDir storageDir(dir.filePath(name) + ".disk");
-	QDir systemDir(makeSystemDir());
 
 	QStringList args;
-	args << systemDir.absolutePath();
+	args << m_dir->absolutePath();
 	args << storageDir.absolutePath();
 	args << QString::number(size);
 
-	if (!runScript("create_disk.sh", args, password)) {
-		systemDir.removeRecursively();
-		storageDir.removeRecursively();
-	}
+	link(storageDir);
 
-	return new Disk(systemDir);
+	m_pendingScript = new Script("create_disk.sh", args, password);
+	connect(m_pendingScript, &Script::finished, [this] (int exitCode, QProcess::ExitStatus exitStatus) {
+		m_pendingScript->deleteLater();
+		m_pendingScript = nullptr;
+
+		if (exitStatus == QProcess::NormalExit && exitCode == 0) {
+			emit created();
+			return;
+		}
+
+		QDir storageDir(diskPath());
+		storageDir.removeRecursively();
+		m_dir->removeRecursively();
+		delete m_dir;
+		m_dir = nullptr;
+
+		emit error(exitCode);
+	});
+
+	m_pendingScript->start();
 }
 
-Disk* Disk::attach(const QDir& dir)
+void Disk::attach(const QDir& dir)
 {
 	QString guid = readGuid(dir);
-	Disk* disk = new Disk(makeSystemDir(guid));
-	disk->link(dir);
-	return disk;
+	m_dir = new QDir(makeSystemDir(guid));
+	link(dir);
+}
+
+bool Disk::match(const QDir& dir)
+{
+	if (!m_dir) {
+		return false;
+	}
+	return readGuid(dir) == guid();
 }
 
 bool Disk::link(const QDir& dir)
 {
-	if (readGuid(dir) != guid()) {
+	if (!m_dir) {
 		return false;
 	}
+
 	QString linkName(diskLink().absoluteFilePath());
 	QFile::remove(linkName);
 	return QFile::link(dir.absolutePath(), linkName);
 }
 
-bool Disk::unlock(const QString& password)
+void Disk::unlock(const QString& password)
 {
-	QStringList args;
-	args << m_dir.absolutePath();
-
-	if (!runScript("mount_disk.sh", args, password)) {
-		return false;
+	if (!m_dir) {
+		return;
 	}
 
-	return true;
+	if (m_pendingScript) {
+		return;
+	}
+
+	QStringList args;
+	args << m_dir->absolutePath();
+
+	m_pendingScript = new Script("mount_disk.sh", args, password);
+	connect(m_pendingScript, &Script::finished, [this] (int exitCode, QProcess::ExitStatus exitStatus) {
+		m_pendingScript->deleteLater();
+		m_pendingScript = nullptr;
+
+		if (exitStatus == QProcess::NormalExit && exitCode == 0) {
+			emit unlocked();
+		}
+		else {
+			emit error(exitCode);
+		}
+	});
+
+	m_pendingScript->start();
 }
 
 void Disk::lock()
 {
-	if (m_pendingProcess) {
+	if (!m_dir) {
+		return;
+	}
+
+	if (m_pendingScript) {
 		return;
 	}
 
@@ -196,62 +258,39 @@ void Disk::lock()
 	QStringList args;
 	args << volumePath();
 
-	m_pendingProcess = new QProcess(this);
+	m_pendingScript = new Script("unmount_disk.sh", args, "");
+	connect(m_pendingScript, &Script::finished, [this] (int exitCode, QProcess::ExitStatus exitStatus) {
+		m_pendingScript->deleteLater();
+		m_pendingScript = nullptr;
 
-	connect(m_pendingProcess,
-			static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-			[this] (int exitCode, QProcess::ExitStatus exitStatus) {
-		qDebug() << "unmount_disk.sh>" << volumePath() << "exitCode:" << exitCode << "exitStatus:" << exitStatus;
-		m_pendingProcess->deleteLater();
-		m_pendingProcess = nullptr;
-		emit locked();
+		if (exitStatus == QProcess::NormalExit && exitCode == 0) {
+			emit locked();
+		}
+		else {
+			emit error(exitCode);
+		}
 	});
 
-	m_pendingProcess->start(scriptPath, args);
+	m_pendingScript->start();
 }
 
 void Disk::cancel()
 {
-	if (m_pendingProcess) {
-		m_pendingProcess->terminate();
-	}
-}
-
-bool Disk::runScript(const QString& scriptName, const QStringList& args, const QString& input)
-{
-	qDebug() << scriptName << args;
-
-	QDir appDir(QApplication::applicationDirPath());
-	QString scriptPath = appDir.filePath(scriptName);
-
-	QProcess script;
-	script.setWorkingDirectory(appDir.absolutePath());
-	script.setProcessChannelMode(QProcess::ForwardedChannels);
-	script.start(scriptPath, args);
-	if (!script.waitForStarted()) {
-		return false;
+	if (!m_dir) {
+		return;
 	}
 
-	if (!input.isEmpty()) {
-		QTextStream stream(&script);
-		stream << input << "\n";
-		stream.flush();
+	if (m_pendingScript) {
+		m_pendingScript->terminate();
 	}
-
-	if (!script.waitForFinished()) {
-		return false;
-	}
-
-	if (!(script.exitStatus() == QProcess::NormalExit && script.exitCode() == 0)) {
-		qDebug() << "exitStatus:" << script.exitStatus() << "exitCode:" << script.exitCode();
-		return false;
-	}
-
-	return true;
 }
 
 void Disk::openVolume()
 {
+	if (!m_dir) {
+		return;
+	}
+
 	QString url = QString("file://%1").arg(volumePath());
 	QDesktopServices::openUrl(QUrl(url, QUrl::TolerantMode));
 }
@@ -263,12 +302,16 @@ void Disk::revealImage()
 
 void Disk::remove(bool erase)
 {
-	if (erase) {
-		QDir diskDir(diskPath());
-		diskDir.removeRecursively();
+	if (!m_dir) {
+		return;
 	}
 
-	m_dir.removeRecursively();
+	if (erase) {
+		QDir storageDir(diskPath());
+		storageDir.removeRecursively();
+	}
+
+	m_dir->removeRecursively();
 }
 
 void Disk::revealFile(const QString& pathIn)

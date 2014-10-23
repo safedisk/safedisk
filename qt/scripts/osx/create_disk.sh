@@ -31,8 +31,6 @@ volume=$(hdiutil attach -imagekey diskimage-class=CRawDiskImage "$system_path/fu
 
 trap on_exit2 EXIT
 
-rm -f "$system_path/disk"
-ln -s "$storage_path" "$system_path/disk"
 rm -f "$system_path/volume"
 ln -s "$volume" "$system_path/volume"
 echo $guid > "$storage_path/guid"

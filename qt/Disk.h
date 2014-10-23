@@ -17,10 +17,11 @@
 
 #pragma once
 
+#include "Script.h"
+
 #include <QDir>
 #include <QList>
 #include <QObject>
-#include <QProcess>
 #include <QFileInfo>
 
 enum class DiskState
@@ -38,14 +39,8 @@ private:
 	explicit Disk(const QDir& dir);
 
 public:
-	static
-	Disk* create(const QDir& dir,
-				const QString& name,
-				const QString& password,
-				uint64_t size);
-
-	static
-	Disk* attach(const QDir& dir);
+	explicit Disk() = default;
+	~Disk();
 
 	static
 	QList<Disk*> fetch();
@@ -59,8 +54,13 @@ public:
 	QString volumePath() const;
 	DiskState state() const;
 
+	void create(const QDir& dir, const QString& name, const QString& password, uint64_t size);
+	void attach(const QDir& dir);
+
+	bool match(const QDir& dir);
+
 	void lock();
-	bool unlock(const QString& password);
+	void unlock(const QString& password);
 	bool link(const QDir& dir);
 
 	void openVolume();
@@ -70,25 +70,23 @@ public:
 	void cancel();
 
 signals:
+	void created();
 	void locked();
+	void unlocked();
+	void error(int exitCode);
 
 private:
 	static
 	QDir systemRoot();
 
-	static
-	QDir makeSystemDir(QString guid = "");
-
 	QFileInfo diskLink() const;
 	QFileInfo volumeLink() const;
 	QDir fuseDir() const;
 
-	static
-	bool runScript(const QString& scriptName, const QStringList& args, const QString& input);
-
+	QDir makeSystemDir(QString guid = "");
 	void revealFile(const QString& pathIn);
 
 private:
-	QDir m_dir;
-	QProcess* m_pendingProcess = nullptr;
+	QDir* m_dir = nullptr;
+	Script* m_pendingScript = nullptr;
 };

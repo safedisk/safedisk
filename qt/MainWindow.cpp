@@ -19,8 +19,11 @@
 #include "ui_About.h"
 #include "CreateDiskDialog.h"
 
+#include <QEventLoop>
 #include <QMessageBox>
 #include <QApplication>
+#include <QProgressBar>
+#include <QProgressDialog>
 
 MainWindow::MainWindow()
 	: m_aboutAction("About SafeDisk", this)
@@ -79,17 +82,41 @@ void MainWindow::onCreate()
 	CreateDiskDialog dialog(this);
 	int result = dialog.exec();
 	if (result == QDialog::Accepted) {
-		Disk* disk = Disk::create(
-					dialog.storagePath(),
+		Disk disk;
+		QEventLoop loop;
+
+		QProgressDialog progress("Creating SafeDisk...", "Cancel", 0, 100);
+		progress.setWindowModality(Qt::WindowModal);
+		progress.setMinimumDuration(500);
+		progress.setValue(0);
+		QProgressBar bar;
+		bar.setRange(0, 0);
+		progress.setBar(&bar);
+
+		connect(&progress, &QProgressDialog::canceled, [&] () {
+			disk.cancel();
+		});
+
+		auto conn1 = connect(&disk, &Disk::created, [&] () {
+			disk.openVolume();
+			loop.exit();
+		});
+
+		auto conn2 = connect(&disk, &Disk::error, [&] (int /*exitCode*/) {
+			progress.reset();
+			QMessageBox::critical(this, "SafeDisk", QString("Could not create disk: \"%1\"").arg(dialog.volumeName()));
+			loop.exit();
+		});
+
+		disk.create(dialog.storagePath(),
 					dialog.volumeName(),
 					dialog.password(),
 					dialog.size());
-		if (disk->state() == DiskState::Invalid) {
-			QMessageBox::critical(this, "SafeDisk", QString("Could not create disk: \"%1\"").arg(dialog.volumeName()));
-		}
-		else {
-			disk->openVolume();
-		}
+
+		loop.exec();
+
+		disconnect(conn1);
+		disconnect(conn2);
 	}
 
 	refresh();
@@ -111,9 +138,10 @@ void MainWindow::openDisk(const QString& dirName)
 {
 	raise();
 
-	Disk* disk = Disk::attach(QDir(dirName));
-	DiskWidget widget(this, disk);
+	Disk* disk = new Disk;
+	disk->attach(QDir(dirName));
 
+	DiskWidget widget(this, disk);
 	if (disk->state() == DiskState::Locked) {
 		widget.unlock();
 	}

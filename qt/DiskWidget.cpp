@@ -153,8 +153,14 @@ void DiskWidget::locate()
 		return;
 	}
 
-	if (!m_disk->link(QDir(dirName))) {
+	QDir dir(dirName);
+	if (!m_disk->match(dir)) {
 		QMessageBox::critical(m_parent, "SafeDisk", QString("Located disk does not match: \"%1\"").arg(m_disk->name()));
+		return;
+	}
+
+	if (!m_disk->link(QDir(dirName))) {
+		QMessageBox::critical(m_parent, "SafeDisk", QString("Could not attach disk: \"%1\"").arg(m_disk->name()));
 		return;
 	}
 
@@ -172,13 +178,44 @@ bool DiskWidget::unlock()
 		return false;
 	}
 
-	if (!m_disk->unlock(password)) {
-		QMessageBox::critical(m_parent, "SafeDisk", QString("Could not unlock disk: \"%1\"").arg(m_disk->name()));
-		return false;
-	}
+	bool result = false;
+	QEventLoop loop;
 
-	m_disk->openVolume();
-	return true;
+	QProgressDialog progress("Unlocking SafeDisk...", "Cancel", 0, 100);
+	progress.setWindowModality(Qt::WindowModal);
+	progress.setMinimumDuration(500);
+	progress.setValue(0);
+	QProgressBar bar;
+	bar.setRange(0, 0);
+	progress.setBar(&bar);
+
+	connect(&progress, &QProgressDialog::canceled, [this] () {
+		m_disk->cancel();
+	});
+
+	auto conn1 = connect(m_disk, &Disk::unlocked, [&] () {
+		loop.exit();
+		result = true;
+	});
+
+	auto conn2 = connect(m_disk, &Disk::error, [&] (int /*exitCode*/) {
+		progress.reset();
+		QMessageBox::critical(m_parent, "SafeDisk", QString("Could not unlock disk: \"%1\"").arg(m_disk->name()));
+		loop.exit();
+		result = false;
+	});
+
+	m_disk->unlock(password);
+
+	loop.exec();
+
+	disconnect(conn1);
+	disconnect(conn2);
+
+	if (result) {
+		m_disk->openVolume();
+	}
+	return result;
 }
 
 void DiskWidget::lock()
@@ -197,7 +234,13 @@ void DiskWidget::lock()
 		m_disk->cancel();
 	});
 
-	auto connection = connect(m_disk, &Disk::locked, [&loop] () {
+	auto conn1 = connect(m_disk, &Disk::locked, [&loop] () {
+		loop.exit();
+	});
+
+	auto conn2 = connect(m_disk, &Disk::error, [&] (int /*exitCode*/) {
+		progress.reset();
+		QMessageBox::critical(m_parent, "SafeDisk", QString("Could not lock disk: \"%1\"").arg(m_disk->name()));
 		loop.exit();
 	});
 
@@ -205,5 +248,6 @@ void DiskWidget::lock()
 
 	loop.exec();
 
-	disconnect(connection);
+	disconnect(conn1);
+	disconnect(conn2);
 }
