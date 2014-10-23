@@ -53,9 +53,6 @@
        </item>
        <item>
         <widget class="QLabel" name="text">
-         <property name="inputMethodHints">
-          <set>Qt::ImhMultiLine</set>
-         </property>
          <property name="text">
           <string>Copyright (C) 2014 Jeremy Bruestle.</string>
          </property>
