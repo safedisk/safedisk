@@ -35,6 +35,7 @@ public:
 
 private slots:
 	void onAbout();
+	void onAboutQt();
 	void onCreate();
 	void onAttach();
 	void refresh();

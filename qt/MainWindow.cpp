@@ -35,7 +35,7 @@ MainWindow::MainWindow()
 	resize(0, 0);
 
 	connect(&m_aboutAction, SIGNAL(triggered()), this, SLOT(onAbout()));
-	connect(&m_aboutQtAction, SIGNAL(triggered()), QApplication::instance(), SLOT(aboutQt()));
+	connect(&m_aboutQtAction, SIGNAL(triggered()), this, SLOT(onAboutQt()));
 	connect(&m_createAction, SIGNAL(triggered()), this, SLOT(onCreate()));
 	connect(&m_attachAction, SIGNAL(triggered()), this, SLOT(onAttach()));
 	connect(&m_quitAction, SIGNAL(triggered()), QApplication::instance(), SLOT(quit()));
@@ -58,10 +58,18 @@ MainWindow::MainWindow()
 
 void MainWindow::onAbout()
 {
+	raise();
+
 	QDialog dialog(this);
 	Ui::AboutDialog ui;
 	ui.setupUi(&dialog);
 	dialog.exec();
+}
+
+void MainWindow::onAboutQt()
+{
+	raise();
+	QApplication::aboutQt();
 }
 
 void MainWindow::onCreate()
