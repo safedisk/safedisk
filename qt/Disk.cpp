@@ -22,8 +22,6 @@
 #include <QDebug>
 #include <QMultiMap>
 #include <QMessageBox>
-#include <QTextStream>
-#include <QApplication>
 #include <QStandardPaths>
 #include <QDesktopServices>
 
@@ -253,8 +251,6 @@ void Disk::lock()
 		return;
 	}
 
-	QDir appDir(QApplication::applicationDirPath());
-	QString scriptPath = appDir.filePath("unmount_disk.sh");
 	QStringList args;
 	args << volumePath();
 
