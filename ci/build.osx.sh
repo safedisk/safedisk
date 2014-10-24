@@ -19,4 +19,4 @@
 set -e
 
 source osx.env
-./build
+./build package
