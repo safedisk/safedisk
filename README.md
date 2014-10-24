@@ -8,16 +8,9 @@ Building on OS X
 --------
 1. `brew install openssl osxfuse qt5`
 1. `. ./osx.env`
-1. `./build`
-
-Creating a distributable .dmg
--------
-1. Install [Iceberg](http://s.sudre.free.fr/Software/Iceberg.html)
-1. `. ./osx.env`
 1. `./build package`
 
-The result is at `pkg/osx/build/SafeDisk.dmg`
-
+The result is at `out/release/SafeDisk.dmg`
 
 Make a 100 MB SafeDisk
 -----------------
