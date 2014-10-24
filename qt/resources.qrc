@@ -1,13 +1,8 @@
 <RCC>
-    <qresource prefix="/">
-        <file>images/icon_29193.svg</file>
-        <file>images/icon_33323.svg</file>
-        <file>images/icon_62939.svg</file>
-        <file>images/icon_65807.svg</file>
-        <file alias="app">images/icon_68285.svg</file>
-        <file>images/icon_71491.svg</file>
-        <file alias="locked">images/icon_1559.svg</file>
-        <file alias="unlocked">images/icon_1560.svg</file>
-        <file alias="ban">images/icon_45999.svg</file>
+    <qresource prefix="/icons">
+        <file alias="locked">images/icon_1559/icon_1559.svg</file>
+        <file alias="unlocked">images/icon_1560/icon_1560.svg</file>
+        <file alias="ban">images/icon_45999/icon_45999.svg</file>
+        <file alias="app">images/icon_68285/icon_68285.svg</file>
     </qresource>
 </RCC>

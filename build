@@ -100,14 +100,37 @@ def debug():
 
 def package():
 	build()
-	build_dir = os.path.join(os.getcwd(), 'out', 'release', 'qt')
+	variant_dir = os.path.join(os.getcwd(), 'out', 'release')
+	build_dir = os.path.join(variant_dir, 'qt')
 	app = os.path.join(build_dir, 'SafeDisk.app')
 	run('macdeployqt', app)
-	run('freeze', 'pkg/osx/SafeDisk.packproj')
-	run('hdiutil', 'create', 'pkg/osx/build/SafeDisk.dmg', 
+	run('pkgbuild', 
+		'--identifier', 'com.github.osxfuse.pkg', 
+		'--nopayload', 
+		'--scripts', 'pkg/osx/Scripts', 
+		os.path.join(build_dir, 'osxfuse.pkg')
+	)
+	run('pkgbuild', 
+		'--identifier', 'com.jfcinc.SafeDisk.pkg', 
+		'--component', app,
+		'--install-location', '/Applications', 
+		os.path.join(build_dir, 'SafeDisk.pkg')
+	)
+	pkg_dir = os.path.join(variant_dir, 'pkg')
+	mkdir(pkg_dir)
+	run('productbuild', 
+		'--package', os.path.join(build_dir, 'osxfuse.pkg'),
+		'--package', os.path.join(build_dir, 'SafeDisk.pkg'),
+		os.path.join(pkg_dir, 'SafeDisk.pkg')
+	)
+	dmg = os.path.join(variant_dir, 'SafeDisk.dmg')
+	if os.path.exists(dmg):
+		os.remove(dmg)
+	run('hdiutil', 
+		'create', dmg,
 		'-volname', 'SafeDisk Installer', 
 		'-fs', 'HFS+', 
-		'-srcfolder', 'pkg/osx/build/SafeDisk.mpkg'
+		'-srcfolder', pkg_dir
 	)
 
 def clean():

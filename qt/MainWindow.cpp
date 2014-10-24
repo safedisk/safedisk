@@ -53,7 +53,7 @@ MainWindow::MainWindow()
 	m_trayIconMenu.addAction(&m_quitAction);
 
 	m_trayIcon.setContextMenu(&m_trayIconMenu);
-	m_trayIcon.setIcon(QIcon(":/app"));
+	m_trayIcon.setIcon(QIcon(":/icons/app"));
 	m_trayIcon.show();
 
 	connect(&m_trayIconMenu, SIGNAL(aboutToShow()), this, SLOT(refresh()));
