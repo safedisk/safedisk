@@ -12,6 +12,8 @@ Building on OS X
 
 The result is at `out/release/SafeDisk.dmg`
 
+Note: On OS X Yosemite, the `osxfuse` package is no longer installable via homebrew. You'll need to manually install this package on your development machine in order to build SafeDisk.
+
 Make a 100 MB SafeDisk
 -----------------
 `./scripts/macosx/make_safedisk ~/Documents/SafeDisk.disk 100`

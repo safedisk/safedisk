@@ -4,7 +4,11 @@ TARGET = SafeDisk
 
 CONFIG += c++11
 
-QT += widgets svg
+QT += widgets
+
+qtHaveModule(svg) {
+    QT += svg
+}
 
 SOURCES += \
     MainWindow.cpp \
