@@ -98,12 +98,47 @@ def debug():
 	build_daemon('debug', ['-g'])
 	build_qt('debug', ['CONFIG+=debug'])
 
+def install_libs(lib_dir, libs, deps):
+	mkdir(lib_dir)
+
+	for lib in libs:
+		run('cp', '-RL', lib, lib_dir)
+
+	os.system('chmod -R +w ' + lib_dir)
+
+	for lib in libs:
+		lib_name = os.path.basename(lib)
+		rpath = '@executable_path/../Frameworks/' + lib_name
+		run('install_name_tool', '-id', rpath, os.path.join(lib_dir, lib_name))
+
+	for exe, libs in deps.items():
+		for lib in libs:
+			lib_name = os.path.basename(lib)
+			rpath = '@executable_path/../Frameworks/' + lib_name
+			run('install_name_tool', '-change', lib, rpath, exe)
+
+
 def package():
 	build()
 	variant_dir = os.path.join(os.getcwd(), 'out', 'release')
 	build_dir = os.path.join(variant_dir, 'qt')
 	app = os.path.join(build_dir, 'SafeDisk.app')
+	lib_dir = os.path.join(app, 'Contents', 'Frameworks')
+
+	libs = [
+		'/usr/local/opt/openssl/lib/libcrypto.1.0.0.dylib'
+	]
+
+	deps = {
+		os.path.join(app, 'Contents', 'MacOs', 'safediskd') : [
+			'/usr/local/opt/openssl/lib/libcrypto.1.0.0.dylib'
+		]
+	}
+
 	run('macdeployqt', app)
+
+	install_libs(lib_dir, libs, deps)
+
 	run('pkgbuild', 
 		'--identifier', 'com.github.osxfuse.pkg', 
 		'--nopayload', 
