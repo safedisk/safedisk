@@ -3,7 +3,7 @@ SafeDisk
 
 # What is SafeDisk?
 
-SafeDisk is a cryptographically secure backup system, where you store copies of your important files (encrypted so no one can read them), on your other machines, or your friends machines.  The cryptography in safedisk uses standard techniques which have been proven safe, along with a special method to allow incrementalbackups without revealing which files changed, the details of which can be found in the [Crypto]() section.  A SafeDisk drive looks like a normal disk (similar to a USB drive), and is easy to set up via a menu widgit.  Currently, we only support Mac OS X, and Linux, but a Windows version is possible if enough people are interested.
+SafeDisk is a cryptographically secure backup system, where you store copies of your important files (encrypted so no one can read them), on your other machines, or your friends machines.  The cryptography in safedisk uses standard techniques which have been proven safe, along with a special method to allow incrementalbackups without revealing which files changed, the details of which can be found in the [Crypto](#Crypto) section.  A SafeDisk drive looks like a normal disk (similar to a USB drive), and is easy to set up via a menu widgit.  Currently, we only support Mac OS X, and Linux, but a Windows version is possible if enough people are interested.
 
 # How to get SafeDisk
 
