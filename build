@@ -33,7 +33,7 @@ BASE_FLAGS = [
 LIB_FLAGS = BASE_FLAGS + pkg_config('--cflags', 'libcrypto') + ['-std=c++11']
 TEST_FLAGS = LIB_FLAGS + ['-I', 'src/lib/'] 
 FUSE_FLAGS = BASE_FLAGS + pkg_config('--cflags', 'fuse') + ['-DFUSE_USE_VERSION=26']
-LD_FLAGS = pkg_config('--libs', 'libcrypto')
+LD_FLAGS = pkg_config('--libs', 'libcrypto') + ['-lscrypt']
 
 CC = 'gcc'
 CXX = 'g++'

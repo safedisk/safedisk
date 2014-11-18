@@ -21,11 +21,48 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <arpa/inet.h>
+#include <openssl/rand.h>
+extern "C" {
+#include <libscrypt.h>
+};
 
 struct meta_data
 {
 	uint32_t blocks;
 };
+
+static bool make_file(const string& filename, const rslice_t& data) 
+{
+	FILE *f = fopen(filename.c_str(), "w");
+	if (f == NULL) {
+		fprintf(stderr, "Unable to make file: %s\n", filename.c_str());
+		return false;
+	}
+	if (fwrite(data.buf(), 1, data.size(), f) != data.size()) {
+		fprintf(stderr, "Unable to write file: %s\n", filename.c_str());
+		fclose(f);
+		unlink(filename.c_str());
+		return false;
+	}
+	fclose(f);
+	return true;
+}
+
+static bool read_file(const string& filename, slice_t& data)
+{
+	FILE *f = fopen(filename.c_str(), "r");
+	if (f == NULL) {
+		fprintf(stderr, "Unable to open file: %s\n", filename.c_str());
+		return false;
+	}
+	if (fread(data.buf(), 1, data.size(), f) != data.size()) {
+		fprintf(stderr, "Unable to read file: %s\n", filename.c_str());
+		fclose(f);
+		return false;
+	}
+	fclose(f);
+	return true;
+}
 
 /* TODO: Move these two static functions into the logic of block_map directly */
 static bool make_meta_file(const string& filename, const cipher_key_t& k, const meta_data& md)
@@ -35,35 +72,15 @@ static bool make_meta_file(const string& filename, const cipher_key_t& k, const 
 	uint64_t iv = 0;
 	iv--;  // Magic meta-data iv
 	slice_t r = ctx.encrypt_and_sign(iv, s);
-	FILE *f = fopen(filename.c_str(), "w");
-	if (f == NULL) {
-		fprintf(stderr, "Unable to make meta-file: %s\n", filename.c_str());
-		return false;
-	}
-	if (fwrite(r.buf(), 1, r.size(), f) != r.size()) {
-		fprintf(stderr, "Unable to write meta-file: %s\n", filename.c_str());
-		fclose(f);
-		unlink(filename.c_str());
-		return false;
-	}
-	fclose(f);
-	return true;
+	return make_file(filename, r);
 }
 
 static bool read_meta_file(const string& filename, const cipher_key_t& k, meta_data& md)
 {
-	FILE *f = fopen(filename.c_str(), "r");
-	if (f == NULL) {
-		fprintf(stderr, "Unable to open meta-file: %s\n", filename.c_str());
-		return false;
-	}
 	slice_t s(sizeof(meta_data) + 16);
-	if (fread(s.buf(), 1, s.size(), f) != s.size()) {
-		fprintf(stderr, "Unable to read meta-file: %s\n", filename.c_str());
-		fclose(f);
+	if (!read_file(filename, s)) {
 		return false;
-	}
-	fclose(f);
+	}	
 	cipher_ctx_t ctx(k);
 	uint64_t iv = 0;
 	iv--;  // Magic meta-data iv
@@ -78,16 +95,34 @@ static bool read_meta_file(const string& filename, const cipher_key_t& k, meta_d
 
 extern "C" void* create_block_map(const char* dir, uint32_t blocks, const char* key)
 {
-	cipher_key_t k = compute_digest(slice_t(key)).cast();
 	int r = mkdir(dir, 0777);
 	if (r < 0) {
 		fprintf(stderr, "Unable to make directory %s: %s\n", dir, strerror(errno));
 		return NULL;
 	}
+	slice_t salt(32);
+	RAND_pseudo_bytes(salt.ubuf(), salt.size());
+	if (!make_file(string(dir) + "/salt", salt)) {
+		return NULL;
+	}
+	slice_t kbuf(32);
+	r = libscrypt_scrypt(
+		(const unsigned char*) key, strlen(key), 
+		salt.ubuf(), salt.size(), 
+		SCRYPT_N, SCRYPT_r, SCRYPT_p, 
+		kbuf.ubuf(), kbuf.size());
+	if (r != 0) {
+		unlink((string(dir) + "/salt").c_str());
+		rmdir(dir);
+		return NULL;
+	}
+
+	cipher_key_t k = kbuf;
 
 	meta_data md;
 	md.blocks = htonl(blocks);
 	if (!make_meta_file(string(dir) + "/meta", k, md)) {
+		unlink((string(dir) + "/salt").c_str());
 		rmdir(dir);
 		return NULL;
 	}
@@ -102,7 +137,21 @@ extern "C" void* create_block_map(const char* dir, uint32_t blocks, const char* 
 
 extern "C" void* open_block_map(const char* dir, const char* key)
 {
-	cipher_key_t k = compute_digest(slice_t(key)).cast();
+	slice_t salt(32);
+	if (!read_file(string(dir) + "/salt", salt)) {
+		return NULL;
+	}
+	slice_t kbuf(32);
+	int r = libscrypt_scrypt(
+		(const unsigned char*) key, strlen(key), 
+		salt.ubuf(), salt.size(), 
+		SCRYPT_N, SCRYPT_r, SCRYPT_p, 
+		kbuf.ubuf(), kbuf.size());
+	if (r != 0) {
+		return NULL;
+	}
+
+	cipher_key_t k = kbuf;
 
 	meta_data md;
 	if (!read_meta_file(string(dir) + "/meta", k, md)) {

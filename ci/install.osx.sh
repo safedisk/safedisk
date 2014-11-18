@@ -18,7 +18,7 @@
 
 set -e
 
-BREWS="osxfuse qt5 openssl"
+BREWS="osxfuse qt5 openssl libscrypt"
 
 for i in $BREWS; do
 	brew outdated | grep -q $i && brew upgrade $i
