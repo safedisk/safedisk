@@ -24,7 +24,7 @@ sudo apt-get install -qq \
 	libboost-dev \
 	libfuse-dev \
 	gdb \
-	libscrypt-dev \
+	libscrypt0 \
 	qt5-default
 
 sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 90

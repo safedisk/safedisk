@@ -43,6 +43,21 @@ static time_t modify_time;
 static time_t access_time;
 #endif
 
+#ifdef __APPLE__
+static int safedisk_getxattr(const char *path, const char *name, char *out, size_t size, uint32_t position)
+{
+	if (strcmp(path, "/") == 0 && strcmp(name, "com.apple.FinderInfo") == 0) {
+		memset(out, 0, size);
+		if (size > 8) {
+			out[8] = 0x40;
+		}
+		return size;
+	}
+	return -1;
+}
+#endif
+
+
 extern void* create_block_map(const char* dir, uint32_t blocks, const char* key);
 extern void* open_block_map(const char* dir, const char* key);
 extern void close_block_map(void* bm);
@@ -264,6 +279,9 @@ struct fuse_operations safedisk_filesystem_operations = {
 	.read       = safedisk_read,       // Allow block reads
 	.write      = safedisk_write,      // Allow block writes
 	.readdir    = safedisk_readdir,    // Directory listing of our one directory
+#if __APPLE__
+	.getxattr   = safedisk_getxattr,   // YEAH APPLE!
+#endif
 };
 
 // TODO: Less lame option parsing 

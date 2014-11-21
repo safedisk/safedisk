@@ -1,40 +1,54 @@
+Here's another cut. I haven't rebuilt the app in a bit but I think usage instructions there should be pretty quick.
+
 SafeDisk
 ========
 
 # What is SafeDisk?
 
-SafeDisk is a cryptographically secure backup system, where you store copies of your important files (encrypted so no one can read them), on your other machines, or your friends machines.  The cryptography in safedisk uses standard techniques which have been proven safe, along with a special method to allow incrementalbackups without revealing which files changed, the details of which can be found in the [Crypto](#crypto) section.  A SafeDisk drive looks like a normal disk (similar to a USB drive), and is easy to set up via a menu widgit.  Currently, we only support Mac OS X, and Linux, but a Windows version is possible if enough people are interested.
+SafeDisk is safe storage for your files. It gives you a place to store your files that only you can access (safe from prying eyes) and is backed up in multiple physical locations (safe from lost/broken hardware). All copies of your data are [encrypted](#crypto) on disk and mirrored to your friends or any place you choose. Unlike cloud storage you have full control over how your data gets placed and there are no monthly fees or accounts that can expire.
+
+The SafeDisk container is composed of files that are written in such a way as to allow them to be safely synced while in use by tools such as BitTorrent Sync, Dropbox, or rsync. Currently the authors are using BitTorrent Sync but we are investigating open source alternatives.
+
+SafeDisk runs on Mac and Linux with Windows support planned. 
 
 # How to get SafeDisk
 
-If you're a paranoid crypto type, a developer, or you run linux, we recomend you build from source (see [Building](#building) section).  For normal OS X users, we provide a package, which you can download here: [TODO: Insert link]
+For Mac OS X users with [version] or newer, we provide a package which you can download here: [TODO: Insert link] For developers and Linux users, we recommend you build from source (see [Building](#building) section). 
 
 # How to use SafeDisk
 
-[TODO: Newbie intro]
+First, install the SafeDisk application from the installer in this DMG [TODO link]. After installation launch SafeDisk from the Applications folder. This will place an icon in your status area:
 
-# How to set up a NAS to backup your data using BTSync
+![menu bar](doc/res/1.png)
+
+Then create an image:
+
+![](doc/res/2.png)
+
+Because SafeDisk is effectively a disk image you'll need to set the maximum size of the volume up front. Note that the underlying storage will start out at a few megabytes and during usage may grow up to double the capacity.
+
+![](doc/res/4.png)
+
+...and there you go. A freshly built, empty disk has been made. It will be stored in a bundle with a .disk extension.
+
+![](doc/res/5.png)
+
 
 # How to backup to your friends using BTSync
 
+Place the .disk bundle into a directory synced by BitTorrent Sync.
+
 # Crypto
 
-SafeDisk is designed to prevent both simple attacks, such as an attacker reading your data, as well as more sophisticated ones, such as an attacker modifying your data with you knowing, or even a friend you back up your data to trying to spy of which data your editing.   
- 
-In addition, SafeDisk must support *incremental* backup.  That is, when you change only a small amount of data, the cost of updating your backups should be small.  To do this, SafeDisk combines two ideas:  GCM mode block encryption, and append only databases.
+SafeDisk uses state of the art, vetted cryptography to protect your data from disclosure or tampering. Data at rest is encrypted with AES-256-GCM with a key derived from the user's passphrase with scrypt. It also uses a storage format that masks your usage pattern, essentially by transforming scattered writes on the protected files into a stream of encrypted data appended to the container.
 
-To explain the details of GCM encryption would take us too far afield, but please see the [wikipedia](http://en.wikipedia.org/wiki/Galois/Counter_Mode).  Of course GCM mode needs a block cipher, and SafeDisk uses [AES 256](http://en.wikipedia.org/wiki/Advanced_Encryption_Standard).  The precise details of how these well studied cryptographic primitives are used covered in [Gory Details](#gory-details) for those who are intested in such things.
-
-Regarding the notion of append only databases [TODO: Write this]
-
-## Gory Details
-[TODO: Write this] 
+For more details on the cryptography used refer to Wikipedia's articles on [AES](http://en.wikipedia.org/wiki/Advanced_Encryption_Standard) and [Galois Counter Mode](http://en.wikipedia.org/wiki/Galois/Counter_Mode). Matthew Green has a nice write-up covering some of the rationale for [selecting a cipher](http://blog.cryptographyengineering.com/2012/05/how-to-choose-authenticated-encryption.html).
 
 # Building
 
 ## Building on Linux
 
-Some instructions here
+[some instructions here]
 
 ### Linux build Status
 [![Build Status](https://travis-ci.org/safedisk/safedisk.svg)](https://travis-ci.org/safedisk/safedisk)
@@ -58,14 +72,12 @@ SafeDisk will prompt you for a password, this will be your new disk's password.
 ### Mount a SafeDisk
 `./scripts/macosx/mount_safedisk ~/Documents/SafeDisk.disk`
 
-SafeDisk will again prompt you for a password.  
+SafeDisk will again prompt you for a password.  
 Presuming it's correct, the system will mount the drive
 and it will appear as a mounted volume (initially called Untitled).
 
 ### Unmount a SafeDisk
-Hit the eject icon for the disk.  
+Hit the eject icon for the disk.  
 
 ### Make a backup
 `~/Documents/SafeDisk.disk/data` contains all of the actual data, rsync at will.
-
-
