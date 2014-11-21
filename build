@@ -126,12 +126,14 @@ def package():
 	lib_dir = os.path.join(app, 'Contents', 'Frameworks')
 
 	libs = [
-		'/usr/local/opt/openssl/lib/libcrypto.1.0.0.dylib'
+		'/usr/local/opt/openssl/lib/libcrypto.1.0.0.dylib',
+		'/usr/local/opt/libscrypt/lib/libscrypt.0.dylib'
 	]
 
 	deps = {
 		os.path.join(app, 'Contents', 'MacOs', 'safediskd') : [
-			'/usr/local/opt/openssl/lib/libcrypto.1.0.0.dylib'
+			'/usr/local/opt/openssl/lib/libcrypto.1.0.0.dylib',
+			'/usr/local/opt/libscrypt/lib/libscrypt.0.dylib'
 		]
 	}
 
