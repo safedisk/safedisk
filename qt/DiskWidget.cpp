@@ -128,22 +128,8 @@ void DiskWidget::onReveal()
 void DiskWidget::onRemove()
 {
 	m_parent->raise();
-
-	QMessageBox::StandardButton button = QMessageBox::No;
-	if (m_disk->state() != DiskState::Missing) {
-		button = QMessageBox::question(
-					nullptr,
-					"Remove SafeDisk",
-					"Permanently erase all data?",
-					QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
-		if (button == QMessageBox::Cancel) {
-			return;
-		}
-	}
-
 	lock();
-
-	m_disk->remove(button == QMessageBox::Yes);
+	m_disk->remove(false);
 }
 
 void DiskWidget::locate()
