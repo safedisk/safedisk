@@ -114,9 +114,9 @@ def install_libs(lib_dir, libs, deps):
 	for exe, libs in deps.items():
 		for lib in libs:
 			lib_name = os.path.basename(lib)
+			lib = lib.replace('libscrypt.0.dylib', 'libscrypt.0.so')
 			rpath = '@executable_path/../Frameworks/' + lib_name
 			run('install_name_tool', '-change', lib, rpath, exe)
-
 
 def package():
 	build()
